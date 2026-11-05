@@ -6,6 +6,8 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 
 ## Try it
 
+**Live:** https://murmuration-t806.onrender.com (free hosting: the first visit after a quiet spell can take up to a minute to wake).
+
 Click **Try the demo** on the sign-in page: you get a private sandbox with sample pages, no sign-up. Then open **Lab** and invite the practice collaborators.
 
 ## What works today
