@@ -1,0 +1,197 @@
+'use client'
+
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import type { Editor as TiptapEditor } from '@tiptap/react'
+import { ancestors, can, pageDoc, readPresenceUser, ROLE_LABEL, type PresenceUser, type Role } from '@murmuration/shared'
+import type { DocHandle } from '@murmuration/client'
+import { useConnectionStatus, useDocState, useSharedDoc } from '@/lib/sync'
+import { useTree, useTreeRole } from '@/lib/tree'
+import { Avatar } from './avatar'
+import { Editor } from './editor'
+import { Icon } from './icons'
+import { SharePopover } from './share'
+import { useWorkspace } from './workspace'
+
+export function PageView({ pageId, initialRole, overrides }: { pageId: string; initialRole: Role; overrides: Record<string, Role> }) {
+  const { user, workspace, setNavOpen } = useWorkspace()
+  const tree = useTree()
+  const shared = useSharedDoc(pageDoc(pageId))
+  const state = useDocState(shared?.handle)
+  const role = state.role ?? initialRole
+  const canEdit = can(role, 'edit')
+  const treeRole = useTreeRole()
+  const canRename = can(treeRole ?? workspace.role, 'manage-pages')
+  const node = tree.nodes.get(pageId)
+  const trail = useMemo(() => ancestors(tree.nodes, pageId), [tree.nodes, pageId])
+  const editorRef = useRef<TiptapEditor | null>(null)
+  const onReady = useCallback((e: TiptapEditor) => (editorRef.current = e), [])
+
+  useEffect(() => {
+    document.title = `${node?.title || 'Untitled'} · Murmuration`
+  }, [node?.title])
+
+  return (
+    <>
+      <header className="topbar">
+        <button className="icon-btn menu-btn" type="button" aria-label="Open navigation" onClick={(e) => (e.stopPropagation(), setNavOpen(true))}>
+          <Icon name="menu" />
+        </button>
+        <nav className="crumbs" aria-label="Breadcrumbs">
+          <span className="hide-sm">{workspace.name}</span>
+          {trail.map((a) => (
+            <span key={a.id} className="hide-sm" style={{ display: 'contents' }}>
+              <span className="sep">/</span>
+              <Link href={`/w/${workspace.id}/p/${a.id}`}>{a.title || 'Untitled'}</Link>
+            </span>
+          ))}
+          <span className="sep hide-sm">/</span>
+          <b>{node?.title || 'Untitled'}</b>
+        </nav>
+        <div className="spacer" />
+        <SyncStatus saved={state.saved} />
+        {shared && <PresenceStack handle={shared.handle} selfId={user.id} />}
+        <SharePopover pageId={pageId} overrides={overrides} />
+      </header>
+
+      <div className="scroll">
+        <article className="page">
+          <div className="page-meta eyebrow">
+            <span>{workspace.name}</span>
+            <span>{ROLE_LABEL[role]}</span>
+          </div>
+          <TitleField
+            value={node?.title ?? ''}
+            editable={canRename}
+            onChange={(t) => tree.rename(pageId, t)}
+            onEnter={() => editorRef.current?.commands.focus('start')}
+          />
+          <hr className="page-rule" />
+          {!canEdit && (
+            <p className="readonly-note">
+              <Icon name="eye" />
+              {role === 'commenter'
+                ? 'You can read this page and leave comments, but not edit it.'
+                : 'You can read this page but not edit it.'}
+            </p>
+          )}
+          {state.error?.code === 'forbidden' && canEdit && (
+            <p className="readonly-note">
+              <Icon name="eye" /> The server refused a change: {state.error.message}.
+            </p>
+          )}
+          {shared?.ready ? (
+            <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} />
+          ) : (
+            <div className="skeleton" aria-label="Loading page">
+              <i /> <i /> <i /> <i />
+            </div>
+          )}
+        </article>
+      </div>
+    </>
+  )
+}
+
+function TitleField({
+  value,
+  editable,
+  onChange,
+  onEnter,
+}: {
+  value: string
+  editable: boolean
+  onChange(v: string): void
+  onEnter(): void
+}) {
+  // While you're typing, your draft wins; others' changes show once you leave the field.
+  const [draft, setDraft] = useState<string | null>(null)
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const shown = draft ?? value
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [shown])
+  return (
+    <textarea
+      ref={ref}
+      className="title-input"
+      rows={1}
+      value={shown}
+      placeholder="Untitled"
+      readOnly={!editable}
+      aria-label="Page title"
+      maxLength={300}
+      onChange={(e) => {
+        const v = e.target.value.replace(/\n/g, ' ')
+        setDraft(v)
+        onChange(v)
+      }}
+      onBlur={() => setDraft(null)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          onEnter()
+        }
+      }}
+    />
+  )
+}
+
+function SyncStatus({ saved }: { saved: boolean }) {
+  const status = useConnectionStatus()
+  const [label, tone] =
+    status === 'online'
+      ? saved
+        ? ['Saved', 'ok']
+        : ['Saving…', 'busy']
+      : status === 'connecting'
+        ? ['Connecting…', 'busy']
+        : saved
+          ? ['Offline', 'warn']
+          : ['Offline · edits kept on this device', 'warn']
+  return (
+    <span className="status" data-tone={tone} role="status" aria-live="polite">
+      <span className="dot" />
+      <span className="txt">{label}</span>
+    </span>
+  )
+}
+
+function PresenceStack({ handle, selfId }: { handle: DocHandle; selfId: string }) {
+  const store = useMemo(() => {
+    let snap: PresenceUser[] = []
+    const a = handle.awareness
+    const read = () => {
+      const byId = new Map<string, PresenceUser>()
+      a.getStates().forEach((s, clientId) => {
+        const u = readPresenceUser(s.user)
+        if (u && clientId !== a.clientID && u.id !== selfId) byId.set(u.id, u)
+      })
+      snap = [...byId.values()]
+    }
+    read()
+    return {
+      sub: (cb: () => void) => {
+        const h = () => (read(), cb())
+        a.on('change', h)
+        return () => a.off('change', h)
+      },
+      get: () => snap,
+    }
+  }, [handle, selfId])
+  const people = useSyncExternalStore(store.sub, store.get, store.get)
+  if (!people.length) return null
+  return (
+    <div className="stack" aria-label={`Also here: ${people.map((p) => p.name).join(', ')}`}>
+      {people.slice(0, 4).map((p) => (
+        <span className="p" key={p.id} title={`${p.name} is here`}>
+          <Avatar name={p.name} ink={p.ink} size="lg" />
+        </span>
+      ))}
+      {people.length > 4 && <span className="more">+{people.length - 4}</span>}
+    </div>
+  )
+}

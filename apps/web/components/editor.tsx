@@ -1,0 +1,79 @@
+'use client'
+
+import { useEffect } from 'react'
+import { EditorContent, useEditor, type Editor as TiptapEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCaret from '@tiptap/extension-collaboration-caret'
+import { Placeholder } from '@tiptap/extensions'
+import type * as Y from 'yjs'
+import type { DocHandle } from '@murmuration/client'
+import { presenceUser, readPresenceUser } from '@murmuration/shared'
+import type { CurrentUser } from '@/lib/auth'
+
+// Presence comes from other people's browsers, so treat it as untrusted:
+// only a known ink name ever reaches a style.
+const inkOf = (u: Record<string, unknown>) => readPresenceUser(u)?.ink ?? 'ochre'
+
+function renderCaret(user: Record<string, unknown>) {
+  const caret = document.createElement('span')
+  caret.className = 'collaboration-carets__caret'
+  caret.style.setProperty('--c', `var(--ink-${inkOf(user)})`)
+  const label = document.createElement('span')
+  label.className = 'collaboration-carets__label'
+  label.textContent = String(user.name ?? '').split(' ')[0] ?? ''
+  caret.append(label)
+  return caret
+}
+
+export function Editor({
+  doc,
+  handle,
+  user,
+  editable,
+  onReady,
+}: {
+  doc: Y.Doc
+  handle: DocHandle
+  user: CurrentUser
+  editable: boolean
+  onReady?: (editor: TiptapEditor) => void
+}) {
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      editable,
+      extensions: [
+        // Collaboration brings its own history, scoped to this user's edits:
+        // undo never takes back what someone else typed.
+        StarterKit.configure({ undoRedo: false, heading: { levels: [1, 2, 3] } }),
+        Placeholder.configure({ placeholder: 'Start writing…' }),
+        Collaboration.configure({ document: doc }),
+        CollaborationCaret.configure({
+          provider: handle,
+          user: presenceUser(user),
+          render: renderCaret,
+          selectionRender: (u: Record<string, unknown>) => ({
+            nodeName: 'span',
+            class: 'collaboration-carets__selection',
+            style: `--c: var(--ink-${inkOf(u)})`,
+          }),
+        }),
+      ],
+      editorProps: {
+        attributes: { 'aria-label': 'Page content', spellcheck: 'true' },
+      },
+    },
+    [doc, handle],
+  )
+
+  useEffect(() => {
+    if (editor && editor.isEditable !== editable) editor.setEditable(editable)
+  }, [editor, editable])
+
+  useEffect(() => {
+    if (editor) onReady?.(editor)
+  }, [editor, onReady])
+
+  return <EditorContent editor={editor} />
+}
