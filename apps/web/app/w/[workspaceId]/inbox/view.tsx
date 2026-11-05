@@ -42,8 +42,8 @@ export function InboxView({ items }: { items: InboxItem[] }) {
         <div className="inbox">
           <div className="inbox-head">
             <div>
-              <span className="eyebrow">{unread ? `${unread} unread` : 'All caught up'}</span>
               <h1>Inbox</h1>
+              {unread > 0 && <span className="eyebrow">{unread} unread</span>}
             </div>
             {unread > 0 && (
               <button
@@ -58,9 +58,13 @@ export function InboxView({ items }: { items: InboxItem[] }) {
           </div>
 
           {items.length === 0 ? (
-            <div className="empty" style={{ margin: '12vh 0 0', padding: 0 }}>
-              <h2>Nothing here yet.</h2>
-              <p>When someone mentions you with @ or replies to a thread you&rsquo;re in, it shows up here.</p>
+            <div className="inbox-empty">
+              <Icon name="inbox" size={20} />
+              <p>
+                <b>You’re all caught up.</b>
+                <br />
+                Mentions and replies to your comments will appear here.
+              </p>
             </div>
           ) : (
             items.map((item) => (

@@ -18,11 +18,11 @@ export function SignupForm() {
       <form action={action} noValidate>
         <div className="field">
           <label htmlFor="name">Your name</label>
-          <input className="input" id="name" name="name" autoComplete="name" required autoFocus maxLength={80} />
+          <input className="input" id="name" name="name" autoComplete="name" required autoFocus maxLength={80} defaultValue={state?.values?.name} key={`n${state?.values?.name ?? ''}`} />
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input className="input" id="email" name="email" type="email" autoComplete="email" required />
+          <input className="input" id="email" name="email" type="email" autoComplete="email" required defaultValue={state?.values?.email} key={`e${state?.values?.email ?? ''}`} />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>

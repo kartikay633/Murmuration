@@ -21,7 +21,11 @@ import {
 import { assignableRoles, can, inkFor, isRole, rank, type Role } from '@murmuration/shared'
 import { endSession, requireUser, startSession } from '@/lib/auth'
 
-export type FormState = { error?: string; ok?: string } | undefined
+/** `values` echoes back what was typed (never passwords) so a failed submit doesn't empty the form. */
+export type FormState = { error?: string; ok?: string; values?: Record<string, string> } | undefined
+
+const echo = (form: FormData, keys: string[]) =>
+  Object.fromEntries(keys.map((k) => [k, String(form.get(k) ?? '')]))
 
 /* ---------------- accounts ---------------- */
 
@@ -32,12 +36,13 @@ const signupSchema = z.object({
 })
 
 export async function signup(_: FormState, form: FormData): Promise<FormState> {
+  const values = echo(form, ['name', 'email'])
   const parsed = signupSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values }
   const { name, email, password } = parsed.data
   const db = getDb()
   const [exists] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-  if (exists) return { error: 'An account with that email already exists. Sign in instead.' }
+  if (exists) return { error: 'An account with that email already exists. Sign in instead.', values }
 
   const [user] = await db
     .insert(users)
@@ -69,18 +74,19 @@ function tooManyAttempts(key: string): boolean {
 }
 
 export async function login(_: FormState, form: FormData): Promise<FormState> {
+  const values = echo(form, ['email'])
   const parsed = loginSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values }
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
   if (tooManyAttempts(`${parsed.data.email}|${ip}`)) {
-    return { error: 'Too many attempts. Wait a few minutes and try again.' }
+    return { error: 'Too many attempts. Wait a few minutes and try again.', values }
   }
   const [user] = await getDb().select().from(users).where(eq(users.email, parsed.data.email))
   // Same message either way, so the form doesn't reveal which emails have accounts.
   const valid =
     !!user && !user.isBot && user.passwordHash.startsWith('$argon2') && (await verify(user.passwordHash, parsed.data.password))
   if (!user || !valid) {
-    return { error: 'That email and password don’t match.' }
+    return { error: 'That email and password don’t match.', values }
   }
   await startSession(user.id)
   const next = String(form.get('next') ?? '')

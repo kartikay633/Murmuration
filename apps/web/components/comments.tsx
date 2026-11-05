@@ -305,8 +305,9 @@ export function CommentLayer({
           style={{ top: bubble.top, left: bubble.left }}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => startDraft(bubble.from, bubble.to)}
+          title="Comment on this text (Ctrl+Alt+M)"
         >
-          <Icon name="comment" /> Comment <kbd>Ctrl Alt M</kbd>
+          <Icon name="comment" /> Comment
         </button>
       )}
       <aside className="rail" aria-label="Comments" ref={railRef} onClick={() => setActive(null)}>
@@ -314,7 +315,7 @@ export function CommentLayer({
         {draft && (
           <section className="card active" data-card="draft">
             <p className="card-quote">“{draft.quote}”</p>
-            <MentionInput placeholder="Add a comment…" autoFocus onSubmit={submitDraft} onCancel={() => setDraft(null)} />
+            <MentionInput placeholder="Add a comment. Type @ to mention someone." autoFocus onSubmit={submitDraft} onCancel={() => setDraft(null)} />
           </section>
         )}
         {visible.map((t) => (

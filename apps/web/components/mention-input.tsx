@@ -48,6 +48,8 @@ export function MentionInput({
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+    // Only scroll once the box has reached its maximum height.
+    el.style.overflowY = el.scrollHeight > 220 ? 'auto' : 'hidden'
     if (caretAfter.current != null) {
       el.setSelectionRange(caretAfter.current, caretAfter.current)
       caretAfter.current = null
@@ -132,17 +134,13 @@ export function MentionInput({
             >
               <Avatar name={m.name} ink={m.ink} />
               <span>{m.name}</span>
-              <span className="muted mono" style={{ fontSize: 11, marginLeft: 'auto' }}>{m.role}</span>
+              <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>{m.role}</span>
             </li>
           ))}
         </ul>
       )}
       {(text.trim() || onCancel) && (
         <div className="composer-actions">
-          <span className="muted" style={{ fontSize: 11.5 }}>
-            <kbd>Enter</kbd> to send · <kbd>@</kbd> to mention
-          </span>
-          <span style={{ flex: 1 }} />
           {onCancel && (
             <button className="btn ghost" type="button" onClick={onCancel}>
               Cancel

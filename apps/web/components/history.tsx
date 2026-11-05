@@ -32,7 +32,9 @@ export function HistoryView({
   initialBlame,
   onClose,
   onRestored,
+  stacked,
 }: {
+  stacked: boolean
   onRestored?(): void
   pageId: string
   title: string
@@ -129,8 +131,8 @@ export function HistoryView({
       <div className="scroll history-scroll">
         <div className="history-pill" role="status">
           <span>
-            {atNow ? 'Now' : current ? when(current.at) : 'Loading…'}
-            {current && <span className="t"> · edit {index + 1} of {last + 1}</span>}
+            {atNow ? 'Latest version' : current ? when(current.at) : 'Loading…'}
+            {current && !atNow && <span className="t"> · version {index + 1} of {last + 1}</span>}
           </span>
           {!atNow && canRestore && (
             <button type="button" onClick={restore} disabled={!liveEditor}>
@@ -141,12 +143,8 @@ export function HistoryView({
             Back to live
           </button>
         </div>
-        <div className="page-wrap stacked">
+        <div className={`page-wrap${stacked ? ' stacked' : ''}`}>
           <article className="page">
-            <div className="page-meta eyebrow">
-              <span>History</span>
-              <span>Read-only</span>
-            </div>
             <h1 className="title-input" style={{ marginBottom: 18 }}>{title || 'Untitled'}</h1>
             {blame && people.length > 0 && (
               <div className="legend" aria-label="Who wrote what">
@@ -169,6 +167,8 @@ export function HistoryView({
             )}
             {history?.truncated && <p className="muted" style={{ fontSize: 12.5 }}>Showing the first 20,000 edits.</p>}
           </article>
+          {/* Same columns as the live page, so switching views doesn't shift the text. */}
+          {!stacked && <aside className="rail" aria-hidden="true" />}
         </div>
       </div>
       <Timeline
@@ -255,7 +255,7 @@ function Timeline({
         </button>
         <div className="tl-label">
           <b>History</b>
-          <span>{n.toLocaleString('en-US')} edits</span>
+          <span>{n === 1 ? '1 edit' : `${n.toLocaleString('en-US')} edits`}</span>
         </div>
       </div>
       <div
@@ -283,7 +283,7 @@ function Timeline({
           if (e.key === 'End') (e.preventDefault(), setIndex(last))
         }}
       >
-        <div className="bars">
+        <div className={`bars${bars.length < 3 ? ' few' : ''}`}>
           {bars.map((b, i) => (
             <i
               key={i}

@@ -68,7 +68,11 @@ export function PageView({
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const ro = new ResizeObserver(([e]) => setStacked((e?.contentRect.width ?? 0) < 1080))
+    const ro = new ResizeObserver(([e]) => {
+      const w = e?.contentRect.width ?? 0
+      // A hidden element (e.g. while history is open) measures 0; keep the last layout.
+      if (w > 0) setStacked(w < 1080)
+    })
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
@@ -129,6 +133,7 @@ export function PageView({
           initialBlame={history.blame}
           onClose={closeHistory}
           onRestored={() => setTimeout(() => void reanchorRef.current?.(), 50)}
+          stacked={stacked}
         />
       )}
       <div className="scroll" ref={scrollRef} hidden={!!history}>
