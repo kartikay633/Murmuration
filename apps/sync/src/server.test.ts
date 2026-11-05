@@ -257,6 +257,34 @@ describe('sync server', () => {
     expect(fps[0]).toBe(fingerprint(Y.encodeStateVector(b.handle.doc)))
   })
 
+  it('reports a merge only after a real reconnect, not when a document is reopened', async () => {
+    const { roles, url } = await start()
+    roles.map.set('ana', 'editor').set('rohan', 'editor')
+    const a = connect(url, 'ana')
+    const b = connect(url, 'rohan')
+    await waitFor(() => a.handle.state.synced && b.handle.state.synced)
+    b.text.insert(0, 'existing text')
+    await waitFor(() => a.text.length > 0 && b.handle.state.saved)
+    const merges: number[] = []
+    a.client.on('event', (e) => e.data.kind === 'merged' && merges.push(Number(e.data.bytes)))
+
+    // Close and immediately reopen the same document (what a fast navigation does).
+    a.client.close(DOC)
+    const again = a.client.open(DOC, new Y.Doc())
+    await waitFor(() => again.state.synced)
+    await new Promise((r) => setTimeout(r, 100))
+    expect(merges).toEqual([])
+
+    // A real drop: others edit while we're away, then we come back.
+    a.client.disconnect()
+    await waitFor(() => a.client.status === 'offline')
+    b.text.insert(0, 'while you were away ')
+    await waitFor(() => b.handle.state.saved)
+    a.client.reconnect()
+    await waitFor(() => merges.length === 1)
+    expect(merges[0]).toBeGreaterThan(2)
+  })
+
   it('closes a socket that sends a bad token', async () => {
     const { url } = await start()
     const ws = new WebSocket(url)

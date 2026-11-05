@@ -30,7 +30,8 @@ export async function listMembers(workspaceId: string): Promise<Member[]> {
     .select({ id: users.id, name: users.name, email: users.email, ink: users.ink, role: memberships.role, isBot: users.isBot })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
-    .where(eq(memberships.workspaceId, workspaceId))
+    // Practice collaborators are temporary visitors, not members.
+    .where(and(eq(memberships.workspaceId, workspaceId), eq(users.isBot, false)))
     .orderBy(asc(memberships.createdAt))
 }
 

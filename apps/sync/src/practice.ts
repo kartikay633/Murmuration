@@ -7,7 +7,7 @@
 import { SignJWT } from 'jose'
 import * as Y from 'yjs'
 import { SyncClient, type DocHandle } from '@murmuration/client'
-import { claimPracticeRun, commentThreads, comments, eq, getDb, inArray, notifications, publish, users } from '@murmuration/db'
+import { and, claimPracticeRun, commentThreads, comments, eq, getDb, inArray, memberships, notifications, publish, users } from '@murmuration/db'
 import { fingerprint, pageDoc, presenceUser, type Ink } from '@murmuration/shared'
 import { TOKEN_AUDIENCE } from './server'
 
@@ -102,6 +102,13 @@ export async function runPractice(
       b.handle.awareness.setLocalState(null)
       await sleep(200)
       b.client.destroy()
+    }
+    // They were only visiting: take them back out of the workspace.
+    if (bots.length) {
+      await getDb()
+        .delete(memberships)
+        .where(and(eq(memberships.workspaceId, opts.workspaceId), inArray(memberships.userId, bots.map((b) => b.id))))
+        .catch((e) => ctx.log('could not remove practice members', e))
     }
     running.delete(opts.pageId)
   }

@@ -8,6 +8,11 @@ import { SyncProvider } from '@/lib/sync'
 import { TreeProvider } from '@/lib/tree'
 import { Sidebar } from './sidebar'
 
+export interface ToastAction {
+  label: string
+  run(): void
+}
+
 interface WorkspaceCtx {
   user: CurrentUser
   workspace: WorkspaceSummary
@@ -16,7 +21,7 @@ interface WorkspaceCtx {
   role: Role
   navOpen: boolean
   setNavOpen(open: boolean): void
-  toast(message: string): void
+  toast(message: string, action?: ToastAction): void
 }
 
 const Ctx = createContext<WorkspaceCtx | null>(null)
@@ -41,12 +46,13 @@ export function WorkspaceShell({
   children: React.ReactNode
 }) {
   const [navOpen, setNavOpen] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string; action?: ToastAction } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const toast = useCallback((m: string) => {
-    setMessage(m)
+  const toast = useCallback((text: string, action?: ToastAction) => {
+    setMessage({ text, action })
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => setMessage(null), 2800)
+    // Give people time to reach an Undo button.
+    timer.current = setTimeout(() => setMessage(null), action ? 6000 : 2800)
   }, [])
   useEffect(() => () => clearTimeout(timer.current), [])
 
@@ -62,8 +68,20 @@ export function WorkspaceShell({
           </div>
         </TreeProvider>
       </SyncProvider>
-      <div className={`toast${message ? ' on' : ''}`} role="status" aria-live="polite">
-        {message}
+      <div className={`toast${message ? ' on' : ''}${message?.action ? ' has-action' : ''}`} role="status" aria-live="polite">
+        <span>{message?.text}</span>
+        {message?.action && (
+          <button
+            type="button"
+            onClick={() => {
+              const run = message.action!.run
+              setMessage(null)
+              run()
+            }}
+          >
+            {message.action.label}
+          </button>
+        )}
       </div>
     </Ctx.Provider>
   )

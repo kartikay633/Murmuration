@@ -42,7 +42,7 @@ export function EmptyWorkspace() {
                   const res = await createPage(workspace.id)
                   if (!res.id) return toast(res.error ?? 'Could not create a page.')
                   tree.add({ id: res.id, title: '', parentId: null, createdBy: user.id })
-                  router.push(`/w/${workspace.id}/p/${res.id}`)
+                  router.push(`/w/${workspace.id}/p/${res.id}?new=1`)
                 })
               }
             >

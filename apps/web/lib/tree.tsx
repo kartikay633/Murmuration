@@ -25,6 +25,7 @@ interface TreeApi {
   add(node: { id: string; title: string; parentId: string | null; createdBy: string }): void
   rename(id: string, title: string): void
   archive(id: string): void
+  unarchive(id: string): void
   /** Move a page relative to another (or to the top level). Returns false if the move isn't allowed. */
   move(id: string, target: string | null, place: DropPlace): boolean
   canMove(id: string, target: string, place: DropPlace): boolean
@@ -157,6 +158,9 @@ export function TreeProvider({ workspaceId, children }: { workspaceId: string; c
       },
       archive(id) {
         map()?.get(id)?.set('archived', true)
+      },
+      unarchive(id) {
+        map()?.get(id)?.set('archived', false)
       },
       canMove,
       move(id, over, place) {

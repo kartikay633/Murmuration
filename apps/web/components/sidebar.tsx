@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
 import { ancestors, can, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
-import { archivePage, createPage, createWorkspace, logout } from '@/app/actions'
+import { archivePage, createPage, createWorkspace, logout, unarchivePage } from '@/app/actions'
 import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
 import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
@@ -117,7 +117,7 @@ export function Sidebar() {
       tree.add({ id: res.id, title: '', parentId, createdBy: user.id })
       if (parentId) updateExpanded((s) => s.add(parentId))
       setNavOpen(false)
-      router.push(`/w/${workspace.id}/p/${res.id}`)
+      router.push(`/w/${workspace.id}/p/${res.id}?new=1`)
     })
 
   const archive = (node: TreeNode) =>
@@ -125,7 +125,15 @@ export function Sidebar() {
       const res = await archivePage(node.id)
       if (res.error) return toast(res.error)
       tree.archive(node.id)
-      toast(`Archived “${node.title || 'Untitled'}”.`)
+      toast(`Archived “${node.title || 'Untitled'}”.`, {
+        label: 'Undo',
+        run: () =>
+          startTransition(async () => {
+            const back = await unarchivePage(node.id)
+            if (back.error) return toast(back.error)
+            tree.unarchive(node.id)
+          }),
+      })
       const inside = activeId && (activeId === node.id || ancestors(tree.nodes, activeId).some((a) => a.id === node.id))
       if (inside) router.push(`/w/${workspace.id}`)
     })

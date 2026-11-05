@@ -23,7 +23,9 @@ export function PageView({
   initialRole,
   overrides,
   focusThread,
+  isNew = false,
 }: {
+  isNew?: boolean
   pageId: string
   initialRole: Role
   overrides: Record<string, Role>
@@ -144,6 +146,7 @@ export function PageView({
             editable={canRename}
             onChange={(t) => tree.rename(pageId, t)}
             onEnter={() => editor?.commands.focus('start')}
+            autoFocus={isNew}
           />
           <hr className="page-rule" />
           {!canEdit && (
@@ -190,7 +193,9 @@ function TitleField({
   editable,
   onChange,
   onEnter,
+  autoFocus = false,
 }: {
+  autoFocus?: boolean
   value: string
   editable: boolean
   onChange(v: string): void
@@ -200,6 +205,17 @@ function TitleField({
   const [draft, setDraft] = useState<string | null>(null)
   const ref = useRef<HTMLTextAreaElement>(null)
   const shown = draft ?? value
+  // A brand-new page: put the cursor in the title so you can type straight away.
+  useEffect(() => {
+    if (!autoFocus) return
+    if (editable) ref.current?.focus()
+    // Drop the one-time ?new=1 from the address bar.
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('new')) {
+      url.searchParams.delete('new')
+      window.history.replaceState(window.history.state, '', url)
+    }
+  }, [autoFocus, editable])
   useEffect(() => {
     const el = ref.current
     if (!el) return

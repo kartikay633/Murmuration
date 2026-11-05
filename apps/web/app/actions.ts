@@ -173,6 +173,14 @@ export async function archivePage(pageId: string): Promise<{ error?: string }> {
   return {}
 }
 
+export async function unarchivePage(pageId: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  const [page] = await getDb().select({ workspaceId: pages.workspaceId }).from(pages).where(eq(pages.id, pageId))
+  if (!page || !can(await workspaceRole(user.id, page.workspaceId), 'manage-pages')) return { error: 'You can’t restore this page.' }
+  await getDb().update(pages).set({ archivedAt: null }).where(eq(pages.id, pageId))
+  return {}
+}
+
 /** Override one member's role on one page. `null` returns them to their workspace role. */
 export async function setPageRole(pageId: string, userId: string, role: Role | null): Promise<FormState> {
   const user = await requireUser()

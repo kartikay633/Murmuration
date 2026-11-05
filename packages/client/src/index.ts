@@ -53,6 +53,8 @@ export class DocHandle extends Emitter<{ change: DocState }> {
   savedSeq = 0
   subscribed = false
   everSynced = false
+  /** The connection dropped after this document had synced; the next sync is a reconnect. */
+  dropped = false
   /** When each still-unacknowledged edit frame was sent, for round-trip timing. */
   sentAt = new Map<number, number>()
 
@@ -301,6 +303,7 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
       this.ready = false
       for (const h of this.handles.values()) {
         h.subscribed = false
+        if (h.everSynced) h.dropped = true
         h.set({ synced: false })
         // Other people's cursors are stale once we can't hear from them.
         const others = [...h.awareness.getStates().keys()].filter((id) => id !== h.doc.clientID)
@@ -380,9 +383,12 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
           if (kind === SYNC_STEP_2) {
             // An empty Yjs update is 2 bytes. Anything more after a reconnect is
             // other people's work that happened while we were away.
-            if (h.everSynced && payload.byteLength > 2) {
+            // Only a sync that follows a dropped connection is a merge worth announcing;
+            // a late reply to a previous subscription of the same document is not.
+            if (h.dropped && payload.byteLength > 2) {
               this.emit('event', { docName, data: { kind: 'merged', bytes: payload.byteLength } })
             }
+            h.dropped = false
             h.everSynced = true
             h.set({ synced: true, error: null })
           }
