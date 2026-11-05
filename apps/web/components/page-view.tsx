@@ -42,7 +42,19 @@ export function PageView({
   const node = tree.nodes.get(pageId)
   const trail = useMemo(() => ancestors(tree.nodes, pageId), [tree.nodes, pageId])
   const [editor, setEditor] = useState<TiptapEditor | null>(null)
-  const onReady = useCallback((e: TiptapEditor) => setEditor(e), [])
+  // Enter in the title before the editor has loaded: move into the body as soon as it's ready.
+  const wantsBody = useRef(false)
+  const onReady = useCallback((e: TiptapEditor) => {
+    setEditor(e)
+    if (wantsBody.current) {
+      wantsBody.current = false
+      e.commands.focus('start')
+    }
+  }, [])
+  const focusBody = useCallback(() => {
+    if (editor) editor.commands.focus('start')
+    else wantsBody.current = true
+  }, [editor])
   const { threads, refresh } = useThreads(pageId)
   const activateRef = useRef<((id: string) => void) | null>(null)
   const reanchorRef = useRef<(() => Promise<number>) | null>(null)
@@ -145,7 +157,7 @@ export function PageView({
             value={node?.title ?? ''}
             editable={canRename}
             onChange={(t) => tree.rename(pageId, t)}
-            onEnter={() => editor?.commands.focus('start')}
+            onEnter={focusBody}
             autoFocus={isNew}
           />
           <hr className="page-rule" />

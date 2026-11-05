@@ -110,8 +110,12 @@ export function Sidebar() {
     if (chain.some((n) => !expanded.has(n.id))) updateExpanded((s) => chain.forEach((n) => s.add(n.id)))
   }, [activeId, tree.nodes, expanded, updateExpanded])
 
+  // One page at a time: a second click (or Enter on the focused button) while the first
+  // is still being created would otherwise make a duplicate.
+  const [creating, startCreating] = useTransition()
   const newPage = (parentId: string | null) =>
-    startTransition(async () => {
+    !creating &&
+    startCreating(async () => {
       const res = await createPage(workspace.id)
       if (!res.id) return toast(res.error ?? 'Could not create a page.')
       tree.add({ id: res.id, title: '', parentId, createdBy: user.id })
@@ -158,7 +162,7 @@ export function Sidebar() {
         <div className="nav-label">
           Pages
           {canManage && (
-            <button className="icon-btn sm" type="button" aria-label="New page" title="New page" onClick={() => newPage(null)}>
+            <button className="icon-btn sm" type="button" aria-label="New page" title="New page" disabled={creating} onClick={() => newPage(null)}>
               <Icon name="plus" />
             </button>
           )}

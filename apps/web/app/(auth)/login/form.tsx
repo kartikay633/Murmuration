@@ -19,11 +19,13 @@ export function LoginForm({ next }: { next: string }) {
         <input type="hidden" name="next" value={next} />
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input className="input" id="email" name="email" type="email" autoComplete="email" required autoFocus={!state?.values?.email} defaultValue={state?.values?.email} key={state?.values?.email} />
+          <input className="input" id="email" name="email" type="email" autoComplete="email" required autoFocus={!state?.values?.email} defaultValue={state?.values?.email} key={state?.values?.email} aria-invalid={!!state?.fields?.email} />
+          {state?.fields?.email && <span className="field-error">{state.fields.email}</span>}
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input className="input" id="password" name="password" type="password" autoComplete="current-password" required autoFocus={!!state?.values?.email} />
+          <input className="input" id="password" name="password" type="password" autoComplete="current-password" required autoFocus={!!state?.values?.email} aria-invalid={!!state?.fields?.password} />
+          {state?.fields?.password && <span className="field-error">{state.fields.password}</span>}
         </div>
         {state?.error && (
           <p className="error-text" role="alert" style={{ margin: 0 }}>

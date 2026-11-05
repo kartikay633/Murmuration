@@ -22,7 +22,19 @@ import { assignableRoles, can, inkFor, isRole, rank, type Role } from '@murmurat
 import { endSession, requireUser, startSession } from '@/lib/auth'
 
 /** `values` echoes back what was typed (never passwords) so a failed submit doesn't empty the form. */
-export type FormState = { error?: string; ok?: string; values?: Record<string, string> } | undefined
+export type FormState =
+  | { error?: string; ok?: string; values?: Record<string, string>; fields?: Record<string, string> }
+  | undefined
+
+/** First message per field, so every problem shows at once next to its field. */
+function fieldErrors(issues: { path: PropertyKey[]; message: string }[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const i of issues) {
+    const k = String(i.path[0] ?? '')
+    if (k && !out[k]) out[k] = i.message
+  }
+  return out
+}
 
 const echo = (form: FormData, keys: string[]) =>
   Object.fromEntries(keys.map((k) => [k, String(form.get(k) ?? '')]))
@@ -38,11 +50,11 @@ const signupSchema = z.object({
 export async function signup(_: FormState, form: FormData): Promise<FormState> {
   const values = echo(form, ['name', 'email'])
   const parsed = signupSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values }
+  if (!parsed.success) return { fields: fieldErrors(parsed.error.issues), values }
   const { name, email, password } = parsed.data
   const db = getDb()
   const [exists] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-  if (exists) return { error: 'An account with that email already exists. Sign in instead.', values }
+  if (exists) return { fields: { email: 'An account with this email already exists. Sign in instead.' }, values }
 
   const [user] = await db
     .insert(users)
@@ -76,7 +88,7 @@ function tooManyAttempts(key: string): boolean {
 export async function login(_: FormState, form: FormData): Promise<FormState> {
   const values = echo(form, ['email'])
   const parsed = loginSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values }
+  if (!parsed.success) return { fields: fieldErrors(parsed.error.issues), values }
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
   if (tooManyAttempts(`${parsed.data.email}|${ip}`)) {
     return { error: 'Too many attempts. Wait a few minutes and try again.', values }
