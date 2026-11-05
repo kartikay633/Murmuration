@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: murmuration-postgres
+    environment:
+      POSTGRES_USER: murmuration
+      POSTGRES_PASSWORD: murmuration
+      POSTGRES_DB: murmuration
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U murmuration"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: murmuration-redis
+    ports:
+      - "6380:6379"
+
+volumes:
+  pgdata:

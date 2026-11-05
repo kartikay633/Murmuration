@@ -1,0 +1,19 @@
+{
+  "name": "murmuration",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n web,sync -c blue,magenta \"npm:dev -w @murmuration/web\" \"npm:dev -w @murmuration/sync\"",
+    "db:up": "docker compose up -d",
+    "db:push": "npm run push -w @murmuration/db",
+    "db:seed": "npm run seed -w @murmuration/db",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "typescript": "~5.9.3"
+  },
+  "engines": { "node": ">=20" }
+}

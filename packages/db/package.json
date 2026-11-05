@@ -1,0 +1,23 @@
+{
+  "name": "@murmuration/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "push": "drizzle-kit push --force",
+    "seed": "tsx --env-file=../../.env src/seed.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@murmuration/shared": "*",
+    "@node-rs/argon2": "^2.2.2",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.7",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15"
+  }
+}

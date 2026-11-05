@@ -1,0 +1,28 @@
+{
+  "name": "@murmuration/sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/index.ts",
+    "start": "tsx --env-file=../../.env src/index.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@murmuration/db": "*",
+    "@murmuration/shared": "*",
+    "jose": "^6.2.15",
+    "lib0": "^0.2.119",
+    "ws": "^8.22.1",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@murmuration/client": "*",
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.0"
+  }
+}

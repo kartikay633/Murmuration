@@ -1,0 +1,313 @@
+import * as Y from 'yjs'
+import * as awarenessProtocol from 'y-protocols/awareness'
+import * as decoding from 'lib0/decoding'
+import * as encoding from 'lib0/encoding'
+import {
+  CLOSE,
+  MSG,
+  SYNC_STEP_1,
+  SYNC_STEP_2,
+  SYNC_UPDATE,
+  decodeError,
+  decodeRole,
+  encodeAuth,
+  encodeEmpty,
+  frame,
+  readHeader,
+  type Role,
+} from '@murmuration/shared'
+
+export type Status = 'connecting' | 'online' | 'offline'
+
+type Listener<T> = (value: T) => void
+class Emitter<E extends Record<string, unknown>> {
+  private map = new Map<keyof E, Set<Listener<never>>>()
+  on<K extends keyof E>(k: K, fn: Listener<E[K]>): () => void {
+    let s = this.map.get(k)
+    if (!s) this.map.set(k, (s = new Set()))
+    s.add(fn as Listener<never>)
+    return () => s!.delete(fn as Listener<never>)
+  }
+  protected emit<K extends keyof E>(k: K, v: E[K]) {
+    this.map.get(k)?.forEach((fn) => (fn as Listener<E[K]>)(v))
+  }
+}
+
+export interface DocState {
+  role: Role | null
+  /** Received the server's copy at least once since (re)subscribing. */
+  synced: boolean
+  /** Every local edit has been durably stored by the server. */
+  saved: boolean
+  error: { code: string; message: string } | null
+}
+
+/**
+ * One document followed over the shared connection. Pass `handle` as the
+ * provider to Tiptap's CollaborationCaret; it exposes `awareness`.
+ */
+export class DocHandle extends Emitter<{ change: DocState }> {
+  state: DocState = { role: null, synced: false, saved: true, error: null }
+  /** Edit frames sent / acknowledged since the current subscription began. */
+  sentSeq = 0
+  savedSeq = 0
+  subscribed = false
+
+  constructor(
+    readonly client: SyncClient,
+    readonly name: string,
+    readonly doc: Y.Doc,
+    readonly awareness: awarenessProtocol.Awareness,
+  ) {
+    super()
+  }
+
+  set(patch: Partial<DocState>) {
+    const next = { ...this.state, ...patch }
+    if (
+      next.role === this.state.role &&
+      next.synced === this.state.synced &&
+      next.saved === this.state.saved &&
+      next.error === this.state.error
+    )
+      return
+    this.state = next
+    this.emit('change', next)
+  }
+}
+
+export interface SyncClientOptions {
+  url: string
+  /** Fetches a fresh token; called before every (re)connect. */
+  getToken: () => Promise<string>
+  WebSocketImpl?: typeof WebSocket
+  /** Called with every frame sent/received; the Network Lab hooks in here later. */
+  tap?: (direction: 'in' | 'out', bytes: number) => void
+}
+
+export class SyncClient extends Emitter<{ status: Status }> {
+  status: Status = 'connecting'
+  private ws: WebSocket | null = null
+  private ready = false
+  private handles = new Map<string, DocHandle>()
+  private cleanups = new Map<string, () => void>()
+  private attempts = 0
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private destroyed = false
+
+  constructor(private readonly opts: SyncClientOptions) {
+    super()
+    void this.connect()
+  }
+
+  /* ---------------- documents ---------------- */
+
+  open(name: string, doc: Y.Doc, awareness = new awarenessProtocol.Awareness(doc)): DocHandle {
+    const existing = this.handles.get(name)
+    if (existing) return existing
+    const h = new DocHandle(this, name, doc, awareness)
+    this.handles.set(name, h)
+
+    const onUpdate = (update: Uint8Array, origin: unknown) => {
+      if (origin === this) return
+      h.set({ saved: false })
+      if (!this.ready || !h.subscribed) return // sent as step 2 after reconnect
+      const enc = frame(MSG.SYNC, name)
+      encoding.writeVarUint(enc, SYNC_UPDATE)
+      encoding.writeVarUint8Array(enc, update)
+      h.sentSeq++
+      this.send(encoding.toUint8Array(enc))
+    }
+    const onAwareness = (
+      { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
+    ) => {
+      if (origin !== 'local' || !this.ready || !h.subscribed) return
+      const enc = frame(MSG.AWARENESS, name)
+      encoding.writeVarUint8Array(enc, awarenessProtocol.encodeAwarenessUpdate(awareness, [...added, ...updated, ...removed]))
+      this.send(encoding.toUint8Array(enc))
+    }
+    doc.on('update', onUpdate)
+    awareness.on('update', onAwareness)
+    this.cleanups.set(name, () => {
+      doc.off('update', onUpdate)
+      awareness.off('update', onAwareness)
+    })
+
+    if (this.ready) this.subscribe(h)
+    return h
+  }
+
+  close(name: string) {
+    const h = this.handles.get(name)
+    if (!h) return
+    this.cleanups.get(name)?.()
+    this.cleanups.delete(name)
+    this.handles.delete(name)
+    if (this.ready) {
+      // Tell others our cursor is gone before we stop listening.
+      awarenessProtocol.removeAwarenessStates(h.awareness, [h.doc.clientID], 'local')
+      const enc = frame(MSG.AWARENESS, name)
+      encoding.writeVarUint8Array(enc, awarenessProtocol.encodeAwarenessUpdate(h.awareness, [h.doc.clientID]))
+      this.send(encoding.toUint8Array(enc))
+      this.send(encodeEmpty(MSG.UNSUBSCRIBE, name))
+    }
+  }
+
+  get(name: string) {
+    return this.handles.get(name)
+  }
+
+  /** Drop the connection on purpose (offline mode, tests). */
+  disconnect() {
+    this.manualOffline = true
+    this.ws?.close(1000, 'client went offline')
+  }
+  reconnect() {
+    this.manualOffline = false
+    this.attempts = 0
+    if (!this.ws) void this.connect()
+  }
+  private manualOffline = false
+
+  destroy() {
+    this.destroyed = true
+    if (this.retryTimer) clearTimeout(this.retryTimer)
+    for (const name of [...this.handles.keys()]) this.close(name)
+    this.ws?.close(1000, 'client closed')
+  }
+
+  /* ---------------- transport ---------------- */
+
+  private setStatus(s: Status) {
+    if (s === this.status) return
+    this.status = s
+    this.emit('status', s)
+  }
+
+  private send(data: Uint8Array) {
+    if (this.ws?.readyState === 1) {
+      this.ws.send(data)
+      this.opts.tap?.('out', data.byteLength)
+    }
+  }
+
+  private async connect() {
+    if (this.destroyed || this.manualOffline) return
+    this.setStatus(this.attempts === 0 ? 'connecting' : 'offline')
+    let token: string
+    try {
+      token = await this.opts.getToken()
+    } catch {
+      return this.retry()
+    }
+    if (this.destroyed || this.manualOffline) return
+
+    const WS = this.opts.WebSocketImpl ?? WebSocket
+    const ws = new WS(this.opts.url)
+    ws.binaryType = 'arraybuffer'
+    this.ws = ws
+    ws.onopen = () => this.send(encodeAuth(token))
+    ws.onmessage = (ev) => {
+      const data = new Uint8Array(ev.data as ArrayBuffer)
+      this.opts.tap?.('in', data.byteLength)
+      try {
+        this.receive(data)
+      } catch (e) {
+        console.error('[sync] bad frame', e)
+      }
+    }
+    ws.onclose = (ev) => {
+      if (this.ws !== ws) return
+      this.ws = null
+      this.ready = false
+      for (const h of this.handles.values()) {
+        h.subscribed = false
+        h.set({ synced: false })
+        // Other people's cursors are stale once we can't hear from them.
+        const others = [...h.awareness.getStates().keys()].filter((id) => id !== h.doc.clientID)
+        awarenessProtocol.removeAwarenessStates(h.awareness, others, this)
+      }
+      this.setStatus('offline')
+      if (ev.code === CLOSE.UNAUTHORIZED) this.attempts = Math.max(this.attempts, 3)
+      this.retry()
+    }
+    ws.onerror = () => {
+      /* onclose follows */
+    }
+  }
+
+  private retry() {
+    if (this.destroyed || this.manualOffline || this.retryTimer) return
+    const base = Math.min(15_000, 400 * 2 ** this.attempts)
+    const delay = base / 2 + Math.random() * (base / 2)
+    this.attempts++
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null
+      void this.connect()
+    }, delay)
+  }
+
+  private subscribe(h: DocHandle) {
+    h.subscribed = true
+    h.sentSeq = 0
+    h.savedSeq = 0
+    this.send(encodeEmpty(MSG.SUBSCRIBE, h.name))
+    const enc = frame(MSG.SYNC, h.name)
+    encoding.writeVarUint(enc, SYNC_STEP_1)
+    encoding.writeVarUint8Array(enc, Y.encodeStateVector(h.doc))
+    this.send(encoding.toUint8Array(enc))
+    if (h.awareness.getLocalState() !== null) {
+      const a = frame(MSG.AWARENESS, h.name)
+      encoding.writeVarUint8Array(a, awarenessProtocol.encodeAwarenessUpdate(h.awareness, [h.doc.clientID]))
+      this.send(encoding.toUint8Array(a))
+    }
+  }
+
+  private receive(data: Uint8Array) {
+    const { type, docName, dec } = readHeader(data)
+    if (type === MSG.READY) {
+      this.ready = true
+      this.attempts = 0
+      this.setStatus('online')
+      for (const h of this.handles.values()) this.subscribe(h)
+      return
+    }
+    const h = this.handles.get(docName)
+    if (!h) return
+
+    switch (type) {
+      case MSG.SYNC: {
+        const kind = decoding.readVarUint(dec)
+        const payload = decoding.readVarUint8Array(dec)
+        if (kind === SYNC_STEP_1) {
+          // Server wants what we have that it doesn't: our offline edits.
+          const diff = Y.encodeStateAsUpdate(h.doc, payload)
+          const enc = frame(MSG.SYNC, docName)
+          encoding.writeVarUint(enc, SYNC_STEP_2)
+          encoding.writeVarUint8Array(enc, diff)
+          h.sentSeq++
+          this.send(encoding.toUint8Array(enc))
+        } else {
+          Y.applyUpdate(h.doc, payload, this)
+          if (kind === SYNC_STEP_2) h.set({ synced: true, error: null })
+        }
+        return
+      }
+      case MSG.AWARENESS:
+        awarenessProtocol.applyAwarenessUpdate(h.awareness, decoding.readVarUint8Array(dec), this)
+        return
+      case MSG.ROLE:
+        h.set({ role: decodeRole(dec) })
+        return
+      case MSG.SAVED: {
+        h.savedSeq = Math.max(h.savedSeq, decoding.readVarUint(dec))
+        if (h.savedSeq >= h.sentSeq) h.set({ saved: true })
+        return
+      }
+      case MSG.ERROR:
+        h.set({ error: decodeError(dec) })
+        return
+    }
+  }
+}
