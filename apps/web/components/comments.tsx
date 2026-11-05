@@ -379,17 +379,6 @@ function ThreadCard({
           The text this was on has been deleted. It said “{thread.quote}”.
         </p>
       )}
-      {canComment && !thread.resolvedAt && (
-        <button
-          className="icon-btn sm card-resolve"
-          type="button"
-          title="Resolve"
-          aria-label="Resolve thread"
-          onClick={(e) => (e.stopPropagation(), onResolve(true))}
-        >
-          <Icon name="check" size={14} />
-        </button>
-      )}
       {shown.map((c, i) => (
         <div className="c" key={c.id}>
           <div className="c-head">
@@ -398,17 +387,30 @@ function ThreadCard({
             <time className="c-time" dateTime={c.createdAt} title={new Date(c.createdAt).toLocaleString()}>
               {timeAgo(c.createdAt)}
             </time>
-            {active && canDelete(c.authorId) && (
-              <button
-                className="icon-btn sm c-del"
-                type="button"
-                title={i === 0 ? 'Delete thread' : 'Delete comment'}
-                aria-label={i === 0 ? 'Delete thread' : 'Delete comment'}
-                onClick={(e) => (e.stopPropagation(), onDelete(c.id, i === 0))}
-              >
-                <Icon name="x" size={13} />
-              </button>
-            )}
+            <span className="c-actions">
+              {i === 0 && canComment && !thread.resolvedAt && (
+                <button
+                  className="icon-btn sm"
+                  type="button"
+                  title="Resolve"
+                  aria-label="Resolve thread"
+                  onClick={(e) => (e.stopPropagation(), onResolve(true))}
+                >
+                  <Icon name="check" size={14} />
+                </button>
+              )}
+              {active && canDelete(c.authorId) && (
+                <button
+                  className="icon-btn sm c-del"
+                  type="button"
+                  title={i === 0 ? 'Delete thread' : 'Delete comment'}
+                  aria-label={i === 0 ? 'Delete thread' : 'Delete comment'}
+                  onClick={(e) => (e.stopPropagation(), onDelete(c.id, i === 0))}
+                >
+                  <Icon name="trash" size={14} />
+                </button>
+              )}
+            </span>
           </div>
           <Body text={c.body} />
         </div>

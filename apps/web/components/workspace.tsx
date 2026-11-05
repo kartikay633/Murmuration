@@ -62,6 +62,7 @@ export function WorkspaceShell({
         <TreeProvider workspaceId={workspace.id}>
           <div className={`app${navOpen ? ' nav-open' : ''}`}>
             <Sidebar />
+            {navOpen && <div className="nav-scrim" aria-hidden="true" onClick={() => setNavOpen(false)} />}
             <main className="main" onClick={() => navOpen && setNavOpen(false)}>
               {children}
             </main>

@@ -17,9 +17,9 @@ const DEMO_PAGES: PageSpec[] = [
       { h: 'Three things to try' },
       {
         ul: [
-          'Open Lab (top right) and invite the practice collaborators. Three people join, type alongside you and mention you in a comment.',
-          'In the Lab, switch your connection off, write a sentence, then switch it back on. Watch the copies merge and the fingerprints match.',
-          'Open History to replay this page, or Blame to colour every character by who wrote it.',
+          'Open the ⋯ menu at the top right, choose Network Lab, and invite the practice collaborators. Three people join, type alongside you and mention you in a comment.',
+          'In the Network Lab, switch your connection off, write a sentence, then switch it back on. Watch the copies merge and the fingerprints match.',
+          'Use the clock button at the top right to replay this page, or ⋯ → Show who wrote what to colour every character by its author.',
         ],
       },
       { h: 'Even better with two browsers' },

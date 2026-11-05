@@ -228,11 +228,27 @@ function TitleField({
       window.history.replaceState(window.history.state, '', url)
     }
   }, [autoFocus, editable])
+  // Fit the box to its text, and again whenever its width changes (first layout, rotation,
+  // sidebar toggles); a measurement taken before layout settles can be far too tall.
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
+    let lastWidth = -1
+    const fit = () => {
+      if (!el.clientWidth) return
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+    fit()
+    const ro = new ResizeObserver(([e]) => {
+      const w = Math.round(e?.contentRect.width ?? 0)
+      if (w !== lastWidth) {
+        lastWidth = w
+        fit()
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [shown])
   return (
     <textarea

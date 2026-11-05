@@ -413,6 +413,7 @@ function WorkspaceSwitcher() {
           <div className="eyebrow" style={{ padding: '6px 9px 6px' }}>Workspaces</div>
           {workspaces.map((w) => (
             <Link key={w.id} href={`/w/${w.id}`} className="menu-item" role="menuitem" onClick={close}>
+              <span className="ws-mark sm" aria-hidden="true">{w.name.trim()[0]?.toUpperCase() ?? 'W'}</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
               {w.id === workspace.id && <Icon name="check" className="check" />}
             </Link>
