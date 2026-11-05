@@ -76,7 +76,7 @@ The sync-server tests run real clients against a real server over WebSockets and
 
 ## Roadmap
 
-- [x] Design system and prototype
+- [x] Design system and prototype ([blueprint](docs/BLUEPRINT.md), [prototype](docs/prototype/index.html))
 - [x] Accounts, workspaces, page tree, roles
 - [x] Real-time core: sync server, persistence, presence, server-side permissions
 - [ ] Comments anchored to text, mentions, notifications
