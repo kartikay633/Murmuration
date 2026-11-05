@@ -382,6 +382,21 @@ kbd {
 .mention-menu li[aria-selected="true"] { background: var(--paper-3); }
 
 
+/* Menu footer (page stats) */
+.menu-foot { margin: 4px -4px -4px; padding: 8px 12px; border-top: 1px solid var(--rule); color: var(--ink-3); font: 12px var(--font-sans), sans-serif; }
+
+/* Printing a page: just the page, like a document. */
+@media print {
+  .sidebar, .topbar, .rail, .toast, .lab, .nav-scrim, .fmt-bar, .slash-menu, .pal-scrim, .skeleton, .readonly-note { display: none !important; }
+  html, body, .app, .main, .scroll { height: auto !important; overflow: visible !important; background: #fff !important; color: #000 !important; }
+  .app { display: block !important; }
+  .page-wrap { display: block !important; padding: 0 !important; max-width: none !important; }
+  .page { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .ProseMirror a { color: #000; }
+  .collaboration-carets__caret { display: none !important; }
+  .collaboration-carets__selection, .comment-anchor { background: none !important; border: 0 !important; }
+}
+
 /* Command palette */
 .search-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .nav-kbd { margin-left: auto; font: 500 11px var(--font-sans), sans-serif; color: var(--ink-3); background: transparent; border: 0; padding: 0; opacity: 0; transition: opacity .12s; }

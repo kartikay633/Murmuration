@@ -5,10 +5,16 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import * as Y from 'yjs'
 import {
   and,
+  asc,
   createGuest,
+  desc,
+  docEvents,
+  docSnapshots,
   eq,
+  gt,
   getDb,
   memberships,
   pageRole,
@@ -18,7 +24,7 @@ import {
   workspaceRole,
   workspaces,
 } from '@murmuration/db'
-import { assignableRoles, can, inkFor, isRole, rank, type Role } from '@murmuration/shared'
+import { assignableRoles, can, inkFor, isRole, pageDoc, rank, type Role } from '@murmuration/shared'
 import { endSession, requireUser, startSession } from '@/lib/auth'
 
 /** `values` echoes back what was typed (never passwords) so a failed submit doesn't empty the form. */
@@ -173,6 +179,43 @@ export async function createPage(workspaceId: string, title = ''): Promise<{ id?
     .values({ workspaceId, title: title.slice(0, 300), createdBy: user.id })
     .returning({ id: pages.id })
   return { id: row!.id }
+}
+
+/**
+ * Copy a page: a new page row whose body starts as the source's full state,
+ * stored as one event. Authorship of the copied text is kept.
+ */
+export async function duplicatePage(pageId: string): Promise<{ id?: string; title?: string; error?: string }> {
+  const user = await requireUser()
+  const access = await pageRole(user.id, pageId)
+  if (!access || !can(access.role, 'view') || !can(await workspaceRole(user.id, access.workspaceId), 'manage-pages')) {
+    return { error: 'You can’t duplicate this page.' }
+  }
+  const db = getDb()
+  const [source] = await db.select({ title: pages.title }).from(pages).where(eq(pages.id, pageId))
+  const name = pageDoc(pageId)
+  const [snap] = await db
+    .select({ upto: docSnapshots.uptoEventId, state: docSnapshots.state })
+    .from(docSnapshots)
+    .where(eq(docSnapshots.docName, name))
+    .orderBy(desc(docSnapshots.uptoEventId))
+    .limit(1)
+  const events = await db
+    .select({ update: docEvents.update })
+    .from(docEvents)
+    .where(and(eq(docEvents.docName, name), gt(docEvents.id, snap?.upto ?? 0)))
+    .orderBy(asc(docEvents.id))
+  const updates = [...(snap ? [snap.state] : []), ...events.map((e) => e.update)]
+
+  const title = `${source?.title || 'Untitled'} (copy)`.slice(0, 300)
+  const [row] = await db
+    .insert(pages)
+    .values({ workspaceId: access.workspaceId, title, createdBy: user.id })
+    .returning({ id: pages.id })
+  if (updates.length) {
+    await db.insert(docEvents).values({ docName: pageDoc(row!.id), authorId: user.id, update: Y.mergeUpdates(updates) })
+  }
+  return { id: row!.id, title }
 }
 
 export async function archivePage(pageId: string): Promise<{ error?: string }> {

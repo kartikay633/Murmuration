@@ -126,6 +126,11 @@ export function PageView({
           <Icon name="history" />
         </button>
         <PageMenu
+          pageId={pageId}
+          title={node?.title ?? ''}
+          editor={editor}
+          doc={shared?.doc ?? null}
+          canDuplicate={canRename}
           onBlame={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
           onLab={() => setLabOpen((o) => !o)}
           onCopyLink={() => {
