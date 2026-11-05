@@ -15,6 +15,8 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 - **Per-person undo.** Ctrl+Z only undoes your own changes.
 - **Comments pinned to text.** Select any passage to start a thread. The anchor is a pair of Yjs relative positions, so a comment stays on its words while other people type above, inside or around them; if the words are deleted, the thread says so and keeps the original quote.
 - **@mentions and an inbox.** Mentions and replies notify people instantly, with an unread badge in the sidebar. Opening one jumps straight to the thread.
+- **Time travel.** Every page has a timeline: drag it (or press play) to watch the page being written, edit by edit, and restore any earlier version as a new edit, so nothing is ever lost. Comments on restored text re-pin themselves.
+- **Blame view.** Colour the text by who wrote it, at any point in the page's history. Authorship is exact to the character: it comes from the Yjs client that created each character, mapped to the person whose update introduced that client.
 - **Practice collaborators**: a script that joins a page as a seeded user and types, so you can see real-time editing with one browser.
 
 ## Architecture
@@ -67,6 +69,8 @@ npm run bot -w @murmuration/sync -- <pageId> rohan@murmuration.test "Hello from 
 npm test
 ```
 
+Unit tests also cover rebuilding any past version from the event log (with and without checkpoints) and attributing every character to its author alongside formatting.
+
 The sync-server tests run real clients against a real server over WebSockets and check that:
 
 - two editors converge and every edit is stored with its author
@@ -85,7 +89,7 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Accounts, workspaces, page tree, roles
 - [x] Real-time core: sync server, persistence, presence, server-side permissions
 - [x] Comments anchored to text, mentions, notifications
-- [ ] Page history: time travel, restore, blame view
+- [x] Page history: time travel, restore, blame view
 - [ ] Network Lab (latency, packet loss, partitions), practice collaborators in the UI
 - [ ] Page-tree CRDT for concurrent moves
 - [ ] Multiple sync servers behind Redis, load tests, deployment

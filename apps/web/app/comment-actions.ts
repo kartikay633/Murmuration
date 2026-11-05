@@ -229,6 +229,17 @@ export async function setThreadResolved(threadId: string, resolved: boolean): Pr
   return {}
 }
 
+/** Re-pin a thread whose text was replaced (e.g. by restoring an older version). */
+export async function moveThreadAnchor(threadId: string, start: string, end: string): Promise<Result> {
+  const user = await requireUser()
+  const a = await threadAccess(threadId, user.id)
+  if (!a || !can(a.role, 'edit')) return { error: 'You can’t move this comment.' }
+  if (!B64.test(start) || !B64.test(end)) return { error: 'Invalid anchor.' }
+  await getDb().update(commentThreads).set({ anchorStart: start, anchorEnd: end }).where(eq(commentThreads.id, threadId))
+  await publish({ kind: 'comments', pageId: a.thread.pageId })
+  return {}
+}
+
 /** Authors can delete their own comments; admins can delete any. Deleting the first comment removes the thread. */
 export async function deleteComment(commentId: string): Promise<Result> {
   const user = await requireUser()

@@ -10,6 +10,7 @@ import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { CommentLayer } from './comments'
+import { HistoryView } from './history'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
@@ -40,9 +41,12 @@ export function PageView({
   const onReady = useCallback((e: TiptapEditor) => setEditor(e), [])
   const { threads, refresh } = useThreads(pageId)
   const activateRef = useRef<((id: string) => void) | null>(null)
+  const reanchorRef = useRef<(() => Promise<number>) | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [stacked, setStacked] = useState(false)
+  const [history, setHistory] = useState<{ blame: boolean } | null>(null)
+  const closeHistory = useCallback(() => setHistory(null), [])
 
   // Comments sit in a margin beside the text when there's room, and below it otherwise.
   useEffect(() => {
@@ -77,10 +81,40 @@ export function PageView({
         <div className="spacer" />
         <SyncStatus saved={state.saved} />
         {shared && <PresenceStack handle={shared.handle} selfId={user.id} />}
+        <button
+          className="btn ghost"
+          type="button"
+          aria-pressed={history ? !history.blame : false}
+          onClick={() => setHistory((h) => (h && !h.blame ? null : { blame: false }))}
+          title="Page history"
+        >
+          <Icon name="history" /> <span className="txt hide-sm">History</span>
+        </button>
+        <button
+          className="btn ghost"
+          type="button"
+          aria-pressed={history?.blame ?? false}
+          onClick={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
+          title="Colour the text by who wrote it"
+        >
+          <Icon name="blame" /> <span className="txt hide-sm">Blame</span>
+        </button>
         <SharePopover pageId={pageId} overrides={overrides} />
       </header>
 
-      <div className="scroll" ref={scrollRef}>
+      {history && (
+        <HistoryView
+          key={history.blame ? 'blame' : 'history'}
+          pageId={pageId}
+          title={node?.title ?? ''}
+          liveEditor={editor}
+          canRestore={canEdit}
+          initialBlame={history.blame}
+          onClose={closeHistory}
+          onRestored={() => setTimeout(() => void reanchorRef.current?.(), 50)}
+        />
+      )}
+      <div className="scroll" ref={scrollRef} hidden={!!history}>
         <div className={`page-wrap${stacked ? ' stacked' : ''}`} ref={wrapRef}>
         <article className="page">
           <div className="page-meta eyebrow">
@@ -125,6 +159,7 @@ export function PageView({
           wrapRef={wrapRef}
           stacked={stacked}
           activateRef={activateRef}
+          reanchorRef={reanchorRef}
         />
         </div>
       </div>

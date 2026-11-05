@@ -7,11 +7,12 @@ import {
   createThread,
   deleteComment,
   markThreadRead,
+  moveThreadAnchor,
   replyToThread,
   setThreadResolved,
   type ThreadView,
 } from '@/app/comment-actions'
-import { anchorFor, anchorRanges, setAnchors, type Anchor } from '@/lib/comment-anchors'
+import { anchorFor, anchorRanges, findQuote, setAnchors, type Anchor } from '@/lib/comment-anchors'
 import { splitMentions, timeAgo } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { Icon } from './icons'
@@ -36,8 +37,10 @@ export function CommentLayer({
   wrapRef,
   stacked,
   activateRef,
+  reanchorRef,
 }: {
   activateRef: React.RefObject<((id: string) => void) | null>
+  reanchorRef: React.RefObject<(() => Promise<number>) | null>
   editor: Editor | null
   pageId: string
   role: Role
@@ -82,6 +85,28 @@ export function CommentLayer({
       activateRef.current = null
     }
   }, [activate, activateRef])
+
+  // After a version restore the text exists again but as new characters; re-pin
+  // any detached thread to the first place its quote now appears.
+  const reanchor = useCallback(async () => {
+    if (!editor || !threads) return 0
+    const ranges = anchorRanges(editor.state)
+    let moved = 0
+    for (const t of threads) {
+      if (ranges.has(t.id)) continue
+      const hit = findQuote(editor.state, t.quote)
+      const anchor = hit && anchorFor(editor.state, hit.from, hit.to)
+      if (anchor && !(await moveThreadAnchor(t.id, anchor.start, anchor.end)).error) moved++
+    }
+    if (moved) await refresh()
+    return moved
+  }, [editor, threads, refresh])
+  useEffect(() => {
+    reanchorRef.current = reanchor
+    return () => {
+      reanchorRef.current = null
+    }
+  }, [reanchor, reanchorRef])
 
   // Arriving from the inbox: open that thread and bring its text into view.
   const focused = useRef<string | null>(null)

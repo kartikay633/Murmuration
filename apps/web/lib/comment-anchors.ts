@@ -49,6 +49,21 @@ export function anchorFor(state: EditorState, from: number, to: number): { start
   return { start: toB64(Y.encodeRelativePosition(start)), end: toB64(Y.encodeRelativePosition(end)) }
 }
 
+/** Find a quote in the document, one textblock at a time. Returns the first match. */
+export function findQuote(state: EditorState, quote: string): Range | null {
+  const q = quote.trim()
+  if (!q) return null
+  let hit: Range | null = null
+  state.doc.descendants((node, pos) => {
+    if (hit) return false
+    if (!node.isTextblock) return true
+    const i = node.textContent.indexOf(q)
+    if (i >= 0) hit = { from: pos + 1 + i, to: pos + 1 + i + q.length }
+    return false
+  })
+  return hit
+}
+
 function resolveAll(state: EditorState, anchors: Anchor[]): Map<string, Range> {
   const y = ystate(state)
   const out = new Map<string, Range>()

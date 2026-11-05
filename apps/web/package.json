@@ -7,7 +7,8 @@
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start --port 3100",
-    "typecheck": "tsc -p . --noEmit"
+    "typecheck": "tsc -p . --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@murmuration/client": "*",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "vitest": "^5.1.0"
   }
 }
