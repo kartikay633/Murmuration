@@ -216,6 +216,17 @@ export const pageVisits = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
 )
 
+/** Pages each person starred, shown at the top of their sidebar. */
+export const favorites = pgTable(
+  'favorites',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    createdAt: created(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect

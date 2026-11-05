@@ -8,6 +8,7 @@ import type { DocHandle } from '@murmuration/client'
 import { useConnectionStatus, useDocState, useSharedDoc, useSyncClient } from '@/lib/sync'
 import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
+import { useFavorites } from '@/lib/favorites'
 import { Avatar } from './avatar'
 import { CatchUpBanner } from './catch-up-banner'
 import { FollowPill, useFollow } from './follow'
@@ -72,6 +73,7 @@ export function PageView({
   const closeLab = useCallback(() => setLabOpen(false), [])
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
+  const favs = useFavorites(workspace.id)
   const followMode = useFollow({ pageId, editor, handle: shared?.handle ?? null, scrollEl: scrollRef, initial: follow })
 
   // Coming back online: say what was merged, so the moment is visible.
@@ -121,6 +123,16 @@ export function PageView({
         <div className="spacer" />
         <SyncStatus saved={state.saved} />
         {shared && <PresenceStack handle={shared.handle} selfId={user.id} following={followMode.following} onFollow={followMode.start} />}
+        <button
+          className="icon-btn star-btn"
+          type="button"
+          aria-pressed={favs.has(pageId)}
+          onClick={() => void favs.toggle(pageId).then((ok) => !ok && toast('Could not update favorites.'))}
+          title={favs.has(pageId) ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={favs.has(pageId) ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Icon name="star" />
+        </button>
         <button
           className="icon-btn"
           type="button"

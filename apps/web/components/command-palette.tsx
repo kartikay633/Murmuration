@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isInTrash } from '@murmuration/shared'
+import { recentPages } from '@/app/favorite-actions'
 import { searchPages, type SearchHit } from '@/app/search-actions'
 import { useTree } from '@/lib/tree'
 import { Icon, type IconName } from './icons'
@@ -88,15 +89,21 @@ export function CommandPalette() {
     }
   }, [])
 
-  // Search as you type, newest answer wins.
+  // Search as you type, newest answer wins. With no query: pages you opened
+  // recently, or (before you've opened any) the most recently edited.
   useEffect(() => {
     if (!open) return
     let stale = false
     const t = setTimeout(
       () => {
-        searchPages(workspace.id, query)
-          .then((r) => !stale && setHits(r))
-          .catch(() => !stale && setHits([]))
+        const load = query.trim()
+          ? searchPages(workspace.id, query)
+          : recentPages(workspace.id).then((ids) =>
+              ids.length
+                ? ids.map((id) => ({ id, title: '', snippet: '', updatedAt: '' }))
+                : searchPages(workspace.id, ''),
+            )
+        load.then((r) => !stale && setHits(r)).catch(() => !stale && setHits([]))
       },
       query ? 120 : 0,
     )
@@ -231,7 +238,7 @@ export function CommandPalette() {
         <div className="pal-list" id="pal-list" role="listbox" ref={listRef}>
           {rows.pageRows.length > 0 && (
             <>
-              <div className="pal-group">{query.trim() ? 'Pages' : 'Recently edited'}</div>
+              <div className="pal-group">{query.trim() ? 'Pages' : 'Recent'}</div>
               {rows.pageRows.map((r, i) => renderRow(r, i))}
             </>
           )}

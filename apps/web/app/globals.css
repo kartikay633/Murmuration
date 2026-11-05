@@ -413,6 +413,12 @@ kbd {
 .follow-pill .icon-btn { color: inherit; }
 .follow-pill .icon-btn:hover { background: color-mix(in srgb, var(--paper) 16%, transparent); }
 
+/* Favorites */
+.fav-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.fav-list .i { color: var(--ink-3); }
+.star-btn[aria-pressed="true"] { color: var(--ink-ochre); }
+.star-btn[aria-pressed="true"] .i path { fill: currentColor; }
+
 /* Trash */
 .trash-wrap { position: relative; margin-top: 10px; }
 .trash-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }

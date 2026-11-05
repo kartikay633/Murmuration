@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
-import { ancestors, can, subtree, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
+import { ancestors, can, isInTrash, subtree, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
 import { unseenPages } from '@/app/visit-actions'
 import { archivePage, createPage, createWorkspace, logout, unarchivePage } from '@/app/actions'
 import { useUnread } from '@/lib/comments'
+import { useFavorites } from '@/lib/favorites'
 import { clearLocalDocs } from '@/lib/sync'
 import { openPalette, useModKey } from './command-palette'
 import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
@@ -180,6 +181,7 @@ export function Sidebar() {
           <span className="label">Inbox</span>
           {unread > 0 && <span className="badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
         </Link>
+        <FavoritesList activeId={activeId} unseen={unseen} />
         <div className="nav-label">
           Pages
           {canManage && (
@@ -252,6 +254,40 @@ export function Sidebar() {
         </form>
       </div>
     </aside>
+  )
+}
+
+/** Starred pages, above the page tree. Titles come live from the tree. */
+function FavoritesList({ activeId, unseen }: { activeId: string | null; unseen: Set<string> }) {
+  const { workspace, setNavOpen } = useWorkspace()
+  const tree = useTree()
+  const { ids } = useFavorites(workspace.id)
+  const shown = ids.filter((id) => tree.nodes.has(id) && !isInTrash(tree.nodes, id))
+  if (!shown.length) return null
+  return (
+    <>
+      <div className="nav-label">Favorites</div>
+      <ul className="fav-list">
+        {shown.map((id) => {
+          const n = tree.nodes.get(id)!
+          return (
+            <li key={id}>
+              <Link
+                href={`/w/${workspace.id}/p/${id}`}
+                className={`item${activeId === id ? ' active' : ''}`}
+                style={{ paddingLeft: 8, gap: 8 }}
+                aria-current={activeId === id ? 'page' : undefined}
+                onClick={() => setNavOpen(false)}
+              >
+                <Icon name="star" />
+                <span className={`label${n.title ? '' : ' untitled'}`}>{n.title || 'Untitled'}</span>
+                {unseen.has(id) && <span className="unseen-dot" title="Changed since you last looked" aria-label="Changed since you last looked" />}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }
 
