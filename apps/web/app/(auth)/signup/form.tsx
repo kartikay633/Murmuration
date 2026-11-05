@@ -4,13 +4,17 @@ import Link from 'next/link'
 import { useActionState } from 'react'
 import { signup } from '@/app/actions'
 import { DemoButton } from '@/components/demo-button'
+import { Mark } from '@/components/icons'
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signup, undefined)
   return (
     <div className="auth-card">
-      <h1>Start a workspace</h1>
-      <p className="sub">You&rsquo;ll get a workspace of your own. Invite people once you&rsquo;re in.</p>
+      <span className="brand">
+        <Mark /> Murmuration
+      </span>
+      <h1>Create your account</h1>
+      <p className="sub">You’ll get a workspace of your own. Invite your team once you’re in.</p>
       <form action={action} noValidate>
         <div className="field">
           <label htmlFor="name">Your name</label>
@@ -42,7 +46,7 @@ export function SignupForm() {
         </button>
       </form>
       <DemoButton />
-      <p className="switch">
+      <p className="auth-alt">
         Already have an account? <Link href="/login">Sign in</Link>
       </p>
     </div>

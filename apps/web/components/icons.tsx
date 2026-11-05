@@ -33,21 +33,12 @@ export function Icon({ name, size = 16, className = '' }: { name: IconName; size
   )
 }
 
-/** The flock: ten dots in a loose curve. */
+/** The Murmuration mark: a single-stroke "M". */
 export function Mark() {
   return (
     <span className="mark" aria-hidden="true">
-      <svg viewBox="0 0 18 18" fill="currentColor">
-        <circle cx="2.8" cy="12.6" r="1" />
-        <circle cx="5.2" cy="10.6" r="1.25" />
-        <circle cx="7.8" cy="9.1" r="1.45" />
-        <circle cx="10.5" cy="8.4" r="1.3" />
-        <circle cx="12.9" cy="6.7" r="1.1" />
-        <circle cx="15" cy="4.6" r=".9" />
-        <circle cx="6.4" cy="13.4" r=".8" />
-        <circle cx="9.3" cy="11.8" r=".95" />
-        <circle cx="12" cy="10.6" r=".8" />
-        <circle cx="14" cy="8.9" r=".65" />
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.5 14.5V6l5.5 5.25L15.5 6v8.5" />
       </svg>
     </span>
   )

@@ -9,7 +9,7 @@ import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
 import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
 import { Avatar } from './avatar'
-import { Icon, Mark } from './icons'
+import { Icon } from './icons'
 import { useDismiss } from './menu'
 import { ThemeToggle } from './theme'
 import { useWorkspace } from './workspace'
@@ -201,7 +201,7 @@ export function Sidebar() {
         <span className="grow">
           <span className="who">{user.name}</span>
           <br />
-          <span className="role">{user.isGuest ? 'guest · resets in 7 days' : workspace.role}</span>
+          <span className="role">{user.isGuest ? 'Guest sandbox' : user.email}</span>
         </span>
         <ThemeToggle />
         <form
@@ -387,7 +387,7 @@ function WorkspaceSwitcher() {
   return (
     <div className="ws-switch" ref={ref}>
       <button className="ws-btn" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Mark />
+        <span className="ws-mark" aria-hidden="true">{workspace.name.trim()[0]?.toUpperCase() ?? 'W'}</span>
         <span style={{ minWidth: 0 }}>
           <span className="ws-name">{workspace.name}</span>
           <span className="ws-sub">

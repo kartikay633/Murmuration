@@ -331,9 +331,6 @@ export function CommentLayer({
             onDelete={remove}
           />
         ))}
-        {threads && threads.length === 0 && !draft && canComment && !stacked && (
-          <p className="rail-hint">Select text to leave a comment.</p>
-        )}
         {resolvedCount > 0 && (
           <button className="rail-toggle" type="button" onClick={(e) => (e.stopPropagation(), setShowResolved((s) => !s))}>
             {showResolved ? 'Hide resolved' : `Show resolved (${resolvedCount})`}

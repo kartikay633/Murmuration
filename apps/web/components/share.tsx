@@ -43,8 +43,8 @@ export function SharePopover({ pageId, overrides: initial }: { pageId: string; o
       </button>
       {open && (
         <div className="popover" role="dialog" aria-label="Share this page">
-          <h3>Who can open this page</h3>
-          <p className="lede">Everyone in {workspace.name} gets their workspace role here unless you change it for this page.</p>
+          <h3>Share this page</h3>
+          <p className="lede">Everyone in {workspace.name} can open it with their usual role. Change someone’s access for this page only below.</p>
 
           {isAdmin && (
             <form
@@ -100,7 +100,7 @@ export function SharePopover({ pageId, overrides: initial }: { pageId: string; o
                     <option value={m.role}>{ROLE_LABEL[m.role]}</option>
                   ) : (
                     <>
-                      <option value="inherit">{ROLE_LABEL[m.role]} (workspace)</option>
+                      <option value="inherit">{ROLE_LABEL[m.role]} · default</option>
                       {ROLES.filter((r) => r !== 'owner' && r !== 'admin').map((r) => (
                         <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                       ))}

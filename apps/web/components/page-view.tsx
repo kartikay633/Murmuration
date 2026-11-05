@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Editor as TiptapEditor } from '@tiptap/react'
-import { ancestors, can, pageDoc, readPresenceUser, ROLE_LABEL, type PresenceUser, type Role } from '@murmuration/shared'
+import { ancestors, can, pageDoc, readPresenceUser, type PresenceUser, type Role } from '@murmuration/shared'
 import type { DocHandle } from '@murmuration/client'
 import { useConnectionStatus, useDocState, useSharedDoc, useSyncClient } from '@/lib/sync'
 import { useTree, useTreeRole } from '@/lib/tree'
@@ -11,6 +11,7 @@ import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { CommentLayer } from './comments'
 import { HistoryView } from './history'
+import { PageMenu } from './page-menu'
 import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
@@ -97,32 +98,23 @@ export function PageView({
         <SyncStatus saved={state.saved} />
         {shared && <PresenceStack handle={shared.handle} selfId={user.id} />}
         <button
-          className="btn ghost"
+          className="icon-btn"
           type="button"
           aria-pressed={history ? !history.blame : false}
           onClick={() => setHistory((h) => (h && !h.blame ? null : { blame: false }))}
           title="Page history"
+          aria-label="Page history"
         >
-          <Icon name="history" /> <span className="txt hide-sm">History</span>
+          <Icon name="history" />
         </button>
-        <button
-          className="btn ghost"
-          type="button"
-          aria-pressed={history?.blame ?? false}
-          onClick={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
-          title="Colour the text by who wrote it"
-        >
-          <Icon name="blame" /> <span className="txt hide-sm">Blame</span>
-        </button>
-        <button
-          className="btn ghost"
-          type="button"
-          aria-pressed={labOpen}
-          onClick={() => setLabOpen((o) => !o)}
-          title="Network Lab: slow down or cut your connection and watch copies merge"
-        >
-          <Icon name="lab" /> <span className="txt hide-sm">Lab</span>
-        </button>
+        <PageMenu
+          onBlame={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
+          onLab={() => setLabOpen((o) => !o)}
+          onCopyLink={() => {
+            void navigator.clipboard?.writeText(window.location.href.split('?')[0]!)
+            toast('Link copied.')
+          }}
+        />
         <SharePopover pageId={pageId} overrides={overrides} />
       </header>
 
@@ -142,10 +134,6 @@ export function PageView({
       <div className="scroll" ref={scrollRef} hidden={!!history}>
         <div className={`page-wrap${stacked ? ' stacked' : ''}`} ref={wrapRef}>
         <article className="page">
-          <div className="page-meta eyebrow">
-            <span>{workspace.name}</span>
-            <span>{ROLE_LABEL[role]}</span>
-          </div>
           <TitleField
             value={node?.title ?? ''}
             editable={canRename}
@@ -163,7 +151,7 @@ export function PageView({
           )}
           {state.error?.code === 'forbidden' && canEdit && (
             <p className="readonly-note">
-              <Icon name="eye" /> The server refused a change: {state.error.message}.
+              <Icon name="eye" /> Your access to this page has changed, so recent edits weren’t saved. Reload to see the latest version.
             </p>
           )}
           {shared?.ready ? (
@@ -239,21 +227,59 @@ function TitleField({
   )
 }
 
+/**
+ * Quiet when all is well. "Saving…" only if a save takes a moment, a brief
+ * "Saved" after that, and a lasting notice only when the connection is down.
+ */
 function SyncStatus({ saved }: { saved: boolean }) {
   const status = useConnectionStatus()
-  const [label, tone] =
-    status === 'online'
-      ? saved
-        ? ['Saved', 'ok']
-        : ['Saving…', 'busy']
-      : status === 'connecting'
-        ? ['Connecting…', 'busy']
-        : saved
-          ? ['Offline', 'warn']
-          : ['Offline · edits kept on this device', 'warn']
+  const [slow, setSlow] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+  const [lateConnect, setLateConnect] = useState(false)
+  const wasSaving = useRef(false)
+
+  useEffect(() => {
+    if (saved) {
+      if (wasSaving.current) {
+        setJustSaved(true)
+        const t = setTimeout(() => setJustSaved(false), 1800)
+        wasSaving.current = false
+        setSlow(false)
+        return () => clearTimeout(t)
+      }
+      setSlow(false)
+      return
+    }
+    const t = setTimeout(() => {
+      setSlow(true)
+      wasSaving.current = true
+    }, 700)
+    return () => clearTimeout(t)
+  }, [saved])
+
+  useEffect(() => {
+    if (status !== 'connecting') return setLateConnect(false)
+    const t = setTimeout(() => setLateConnect(true), 2500)
+    return () => clearTimeout(t)
+  }, [status])
+
+  let label: string | null = null
+  let tone = 'ok'
+  if (status === 'offline') {
+    label = saved ? 'Offline' : 'Offline · changes kept on this device'
+    tone = 'warn'
+  } else if (status === 'connecting') {
+    label = lateConnect ? 'Connecting…' : null
+    tone = 'busy'
+  } else if (!saved && slow) {
+    label = 'Saving…'
+    tone = 'busy'
+  } else if (justSaved) {
+    label = 'Saved'
+  }
   return (
-    <span className="status" data-tone={tone} role="status" aria-live="polite">
-      <span className="dot" />
+    <span className={`status${label ? ' on' : ''}`} data-tone={tone} role="status" aria-live="polite">
+      {label && <span className="dot" />}
       <span className="txt">{label}</span>
     </span>
   )

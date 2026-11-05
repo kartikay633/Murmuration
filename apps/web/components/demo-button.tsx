@@ -7,7 +7,7 @@ function Submit() {
   const { pending } = useFormStatus()
   return (
     <button className="btn block" type="submit" disabled={pending}>
-      {pending ? 'Setting up your sandbox…' : 'Try the demo, no sign-up'}
+      {pending ? 'Setting up your sandbox…' : 'Try the live demo'}
     </button>
   )
 }
@@ -20,9 +20,7 @@ export function DemoButton() {
         <span>or</span>
       </div>
       <Submit />
-      <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', textAlign: 'center' }}>
-        A private sandbox with sample pages. It’s removed after a week.
-      </p>
+      <p className="demo-note">A private sandbox with sample pages, no sign-up needed.</p>
     </form>
   )
 }

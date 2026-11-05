@@ -172,10 +172,10 @@ export function NetworkLab({
         <div className="lab-row">
           <span>
             <b>{offline ? 'Offline' : 'Online'}</b>
-            <span className="muted"> · {client.isOffline ? 'cut by you' : status}</span>
+            <span className="muted">{client.isOffline ? ' · turned off here' : status === 'online' ? '' : ` · ${status}`}</span>
           </span>
           <button
-            className="switch"
+            className="toggle"
             type="button"
             role="switch"
             aria-checked={!client.isOffline}
