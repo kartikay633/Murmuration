@@ -5,12 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { Editor as TiptapEditor } from '@tiptap/react'
 import { ancestors, can, pageDoc, readPresenceUser, ROLE_LABEL, type PresenceUser, type Role } from '@murmuration/shared'
 import type { DocHandle } from '@murmuration/client'
-import { useConnectionStatus, useDocState, useSharedDoc } from '@/lib/sync'
+import { useConnectionStatus, useDocState, useSharedDoc, useSyncClient } from '@/lib/sync'
 import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { CommentLayer } from './comments'
 import { HistoryView } from './history'
+import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
@@ -27,7 +28,7 @@ export function PageView({
   overrides: Record<string, Role>
   focusThread: string | null
 }) {
-  const { user, workspace, setNavOpen } = useWorkspace()
+  const { user, workspace, setNavOpen, toast } = useWorkspace()
   const tree = useTree()
   const shared = useSharedDoc(pageDoc(pageId))
   const state = useDocState(shared?.handle)
@@ -47,6 +48,20 @@ export function PageView({
   const [stacked, setStacked] = useState(false)
   const [history, setHistory] = useState<{ blame: boolean } | null>(null)
   const closeHistory = useCallback(() => setHistory(null), [])
+  const [labOpen, setLabOpen] = useState(false)
+  const closeLab = useCallback(() => setLabOpen(false), [])
+  const client = useSyncClient()
+  useFingerprintPresence(shared?.handle ?? null)
+
+  // Coming back online: say what was merged, so the moment is visible.
+  useEffect(() => {
+    if (!client) return
+    return client.on('event', (e) => {
+      if (e.docName !== pageDoc(pageId) || e.data.kind !== 'merged') return
+      const bytes = Number(e.data.bytes)
+      toast(`Back online. Merged ${bytes < 1024 ? `${bytes} bytes` : `${(bytes / 1024).toFixed(1)} KB`} of edits made while you were away.`)
+    })
+  }, [client, pageId, toast])
 
   // Comments sit in a margin beside the text when there's room, and below it otherwise.
   useEffect(() => {
@@ -99,9 +114,19 @@ export function PageView({
         >
           <Icon name="blame" /> <span className="txt hide-sm">Blame</span>
         </button>
+        <button
+          className="btn ghost"
+          type="button"
+          aria-pressed={labOpen}
+          onClick={() => setLabOpen((o) => !o)}
+          title="Network Lab: slow down or cut your connection and watch copies merge"
+        >
+          <Icon name="lab" /> <span className="txt hide-sm">Lab</span>
+        </button>
         <SharePopover pageId={pageId} overrides={overrides} />
       </header>
 
+      <NetworkLab open={labOpen} onClose={closeLab} handle={shared?.handle ?? null} pageId={pageId} canEdit={canEdit} />
       {history && (
         <HistoryView
           key={history.blame ? 'blame' : 'history'}

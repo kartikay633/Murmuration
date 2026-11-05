@@ -52,6 +52,14 @@ export class DocHandle extends Emitter<{ change: DocState }> {
   sentSeq = 0
   savedSeq = 0
   subscribed = false
+  everSynced = false
+  /** When each still-unacknowledged edit frame was sent, for round-trip timing. */
+  sentAt = new Map<number, number>()
+
+  /** Edit frames sent but not yet stored by the server. */
+  get pending() {
+    return Math.max(0, this.sentSeq - this.savedSeq)
+  }
 
   constructor(
     readonly client: SyncClient,
@@ -74,6 +82,20 @@ export class DocHandle extends Emitter<{ change: DocState }> {
     this.state = next
     this.emit('change', next)
   }
+}
+
+export interface LinkConditions {
+  latencyMs: number
+}
+
+export interface LinkStats {
+  framesIn: number
+  framesOut: number
+  bytesIn: number
+  bytesOut: number
+  /** Time from sending an edit to the server confirming it's stored. */
+  lastRttMs: number | null
+  edits: number
 }
 
 export interface SyncClientOptions {
@@ -123,6 +145,8 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
       encoding.writeVarUint(enc, SYNC_UPDATE)
       encoding.writeVarUint8Array(enc, update)
       h.sentSeq++
+      h.sentAt.set(h.sentSeq, Date.now())
+      this.stats.edits++
       this.send(encoding.toUint8Array(enc))
     }
     const onAwareness = (
@@ -195,11 +219,50 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
     this.emit('status', s)
   }
 
+  /* ---------- link conditioner (Network Lab) ---------- */
+
+  /** Artificial delay applied to every frame in both directions. Order is always preserved. */
+  conditions: LinkConditions = { latencyMs: 0 }
+  readonly stats: LinkStats = { framesIn: 0, framesOut: 0, bytesIn: 0, bytesOut: 0, lastRttMs: null, edits: 0 }
+  private outAt = 0
+  private inAt = 0
+
+  setLatency(ms: number) {
+    this.conditions = { latencyMs: Math.max(0, Math.min(5000, Math.round(ms))) }
+  }
+
+  get isOffline() {
+    return this.manualOffline
+  }
+
+  /** Ask the server for its copy's fingerprint; it replies with an EVENT {kind:'probe', fp}. */
+  probe(name: string) {
+    if (this.ready && this.handles.get(name)?.subscribed) this.send(encodeEmpty(MSG.PROBE, name))
+  }
+
+  /** Delay a step so frames leave/arrive in order, `latency` ms after they were produced. */
+  private later(kind: 'out' | 'in', fn: () => void) {
+    const lat = this.conditions.latencyMs
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    const last = kind === 'out' ? this.outAt : this.inAt
+    if (!lat && last <= now) return fn()
+    const at = Math.max(now + lat, last)
+    if (kind === 'out') this.outAt = at
+    else this.inAt = at
+    setTimeout(fn, at - now)
+  }
+
   private send(data: Uint8Array) {
-    if (this.ws?.readyState === 1) {
-      this.ws.send(data)
-      this.opts.tap?.('out', data.byteLength)
-    }
+    const ws = this.ws
+    if (ws?.readyState !== 1) return
+    this.stats.framesOut++
+    this.stats.bytesOut += data.byteLength
+    this.later('out', () => {
+      if (this.ws === ws && ws.readyState === 1) {
+        ws.send(data)
+        this.opts.tap?.('out', data.byteLength)
+      }
+    })
   }
 
   private async connect() {
@@ -220,12 +283,17 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
     ws.onopen = () => this.send(encodeAuth(token))
     ws.onmessage = (ev) => {
       const data = new Uint8Array(ev.data as ArrayBuffer)
-      this.opts.tap?.('in', data.byteLength)
-      try {
-        this.receive(data)
-      } catch (e) {
-        console.error('[sync] bad frame', e)
-      }
+      this.later('in', () => {
+        if (this.ws !== ws) return
+        this.stats.framesIn++
+        this.stats.bytesIn += data.byteLength
+        this.opts.tap?.('in', data.byteLength)
+        try {
+          this.receive(data)
+        } catch (e) {
+          console.error('[sync] bad frame', e)
+        }
+      })
     }
     ws.onclose = (ev) => {
       if (this.ws !== ws) return
@@ -262,6 +330,7 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
     h.subscribed = true
     h.sentSeq = 0
     h.savedSeq = 0
+    h.sentAt.clear()
     this.send(encodeEmpty(MSG.SUBSCRIBE, h.name))
     const enc = frame(MSG.SYNC, h.name)
     encoding.writeVarUint(enc, SYNC_STEP_1)
@@ -308,7 +377,15 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
           this.send(encoding.toUint8Array(enc))
         } else {
           Y.applyUpdate(h.doc, payload, this)
-          if (kind === SYNC_STEP_2) h.set({ synced: true, error: null })
+          if (kind === SYNC_STEP_2) {
+            // An empty Yjs update is 2 bytes. Anything more after a reconnect is
+            // other people's work that happened while we were away.
+            if (h.everSynced && payload.byteLength > 2) {
+              this.emit('event', { docName, data: { kind: 'merged', bytes: payload.byteLength } })
+            }
+            h.everSynced = true
+            h.set({ synced: true, error: null })
+          }
         }
         return
       }
@@ -319,7 +396,11 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
         h.set({ role: decodeRole(dec) })
         return
       case MSG.SAVED: {
-        h.savedSeq = Math.max(h.savedSeq, decoding.readVarUint(dec))
+        const seq = decoding.readVarUint(dec)
+        const at = h.sentAt.get(seq)
+        if (at) this.stats.lastRttMs = Date.now() - at
+        for (const k of h.sentAt.keys()) if (k <= seq) h.sentAt.delete(k)
+        h.savedSeq = Math.max(h.savedSeq, seq)
         if (h.savedSeq >= h.sentSeq) h.set({ saved: true })
         return
       }

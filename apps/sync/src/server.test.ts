@@ -4,7 +4,7 @@ import * as Y from 'yjs'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as encoding from 'lib0/encoding'
 import { SyncClient, type DocHandle } from '@murmuration/client'
-import { MSG, encodeAuth, encodeEmpty, frame, pageDoc, type LiveEvent, type Role } from '@murmuration/shared'
+import { MSG, encodeAuth, encodeEmpty, fingerprint, frame, pageDoc, type LiveEvent, type Role } from '@murmuration/shared'
 import { createSyncServer, TOKEN_AUDIENCE, type SyncServer } from './server'
 import type { Access, Store, StoredRow } from './types'
 
@@ -234,6 +234,26 @@ describe('sync server', () => {
       globalThis.clearInterval = original
     }
     expect(cleared).toBe(true)
+  })
+
+  it('keeps edits in order under added latency, and probes agree once converged', async () => {
+    const { roles, url } = await start()
+    roles.map.set('ana', 'editor').set('rohan', 'editor')
+    const a = connect(url, 'ana')
+    const b = connect(url, 'rohan')
+    await waitFor(() => a.handle.state.synced && b.handle.state.synced)
+    a.client.setLatency(120)
+    const fps: string[] = []
+    a.client.on('event', (e) => e.data.kind === 'probe' && fps.push(String(e.data.fp)))
+
+    for (const ch of 'ordered') a.text.insert(a.text.length, ch)
+    await waitFor(() => b.text.toString() === 'ordered', 4000)
+    await waitFor(() => a.handle.state.saved, 4000)
+    expect(a.client.stats.lastRttMs).toBeGreaterThanOrEqual(200) // 120 ms each way
+    a.client.probe(DOC)
+    await waitFor(() => fps.length === 1, 4000)
+    expect(fps[0]).toBe(fingerprint(Y.encodeStateVector(a.handle.doc)))
+    expect(fps[0]).toBe(fingerprint(Y.encodeStateVector(b.handle.doc)))
   })
 
   it('closes a socket that sends a bad token', async () => {

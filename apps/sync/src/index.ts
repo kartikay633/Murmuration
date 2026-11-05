@@ -1,6 +1,7 @@
 import { closeDb, EVENTS_CHANNEL, getSql } from '@murmuration/db'
 import type { LiveEvent } from '@murmuration/shared'
 import { pgAccess, pgStore } from './pg'
+import { runPractice } from './practice'
 import { createSyncServer } from './server'
 
 const secret = process.env.SYNC_TOKEN_SECRET
@@ -9,6 +10,7 @@ if (!secret || secret.length < 32) {
   process.exit(1)
 }
 
+let port = Number(process.env.SYNC_PORT ?? 4001)
 const server = await createSyncServer({
   port: Number(process.env.SYNC_PORT ?? 4001),
   secret,
@@ -16,15 +18,20 @@ const server = await createSyncServer({
   access: pgAccess,
   events(handler) {
     const listening = getSql().listen(EVENTS_CHANNEL, (payload) => {
+      let event: LiveEvent
       try {
-        handler(JSON.parse(payload) as LiveEvent)
+        event = JSON.parse(payload) as LiveEvent
       } catch {
-        console.error('[sync] ignored malformed event', payload)
+        return console.error('[sync] ignored malformed event', payload)
       }
+      if (event.kind === 'practice') {
+        void runPractice(event, { port, secret, log: (m, e) => console.error(`[practice] ${m}`, e ?? '') })
+      } else handler(event)
     })
     return () => void listening.then((l) => l.unlisten())
   },
 })
+port = server.port
 console.log(`[sync] listening on ws://localhost:${server.port}`)
 
 let stopping = false

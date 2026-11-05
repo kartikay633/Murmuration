@@ -17,7 +17,8 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 - **@mentions and an inbox.** Mentions and replies notify people instantly, with an unread badge in the sidebar. Opening one jumps straight to the thread.
 - **Time travel.** Every page has a timeline: drag it (or press play) to watch the page being written, edit by edit, and restore any earlier version as a new edit, so nothing is ever lost. Comments on restored text re-pin themselves.
 - **Blame view.** Colour the text by who wrote it, at any point in the page's history. Authorship is exact to the character: it comes from the Yjs client that created each character, mapped to the person whose update introduced that client.
-- **Practice collaborators**: a script that joins a page as a seeded user and types, so you can see real-time editing with one browser.
+- **Network Lab.** A panel on every page that puts the sync engine on screen: add latency to your own connection or cut it entirely, keep typing, and reconnect. It shows round-trip time, unsaved edits, traffic, and a fingerprint of every copy of the page (the server's, yours, and everyone else's). When they all match, the page has converged.
+- **Practice collaborators.** One click brings three scripted people onto the page over the real protocol (same tokens, same permission checks). They type at the top and bottom at once, read with moving cursors, select a phrase and leave a comment that @mentions you, so the whole product can be seen with one browser.
 
 ## Architecture
 
@@ -57,7 +58,7 @@ npm run db:seed               # demo workspace and people
 npm run dev                   # web on :3100, sync on :4001
 ```
 
-Open http://localhost:3100 and sign in with one of the seeded accounts (see `packages/db/src/seed.ts`). Open a second browser (or a private window) as another person to edit together, or let a practice collaborator join the page you're on:
+Open http://localhost:3100 and sign in with one of the seeded accounts (see `packages/db/src/seed.ts`). Open **Lab** on any page and choose *Invite practice collaborators*, or open a second browser (or a private window) as another person. You can also run a single collaborator from the terminal:
 
 ```bash
 npm run bot -w @murmuration/sync -- <pageId> rohan@murmuration.test "Hello from Rohan"
@@ -80,6 +81,7 @@ The sync-server tests run real clients against a real server over WebSockets and
 - a role change applies to an open connection without reconnecting
 - presence updates claiming someone else's client id are refused
 - out-of-band events reach everyone on a page, and inbox events reach only the right person
+- edits stay in order under added latency, and the server's fingerprint matches every converged client
 - closing a document stops its presence timer (no leaks as you move between pages)
 - a bad token closes the socket
 
@@ -90,6 +92,6 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Real-time core: sync server, persistence, presence, server-side permissions
 - [x] Comments anchored to text, mentions, notifications
 - [x] Page history: time travel, restore, blame view
-- [ ] Network Lab (latency, packet loss, partitions), practice collaborators in the UI
+- [x] Network Lab (latency, going offline, replica fingerprints), practice collaborators in the UI
 - [ ] Page-tree CRDT for concurrent moves
 - [ ] Multiple sync servers behind Redis, load tests, deployment

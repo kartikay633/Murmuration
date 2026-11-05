@@ -37,7 +37,24 @@ export const MSG = {
   READY: 8,
   /** server -> client: something outside the document changed (JSON payload, see LiveEvent) */
   EVENT: 9,
+  /** client -> server: report your copy's fingerprint (reply is an EVENT {kind:'probe'}) */
+  PROBE: 10,
 } as const
+
+/**
+ * A short fingerprint of which edits a replica has seen: an FNV-1a hash of its
+ * Yjs state vector (which Yjs encodes sorted by client, so it's canonical).
+ * Two replicas with the same fingerprint have applied exactly the same edits,
+ * and CRDT convergence means they hold exactly the same document.
+ */
+export function fingerprint(stateVector: Uint8Array): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < stateVector.length; i++) {
+    h ^= stateVector[i]!
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(16).padStart(8, '0')
+}
 
 /**
  * Changes that live in Postgres rather than in a Yjs document. The web app
@@ -47,6 +64,8 @@ export const MSG = {
 export type LiveEvent =
   | { kind: 'comments'; pageId: string }
   | { kind: 'inbox'; userIds: string[] }
+  /** Start scripted practice collaborators on a page for this visitor. */
+  | { kind: 'practice'; pageId: string; workspaceId: string; visitorId: string }
 
 export function encodeEvent(docName: string, payload: object): Uint8Array {
   const enc = frame(MSG.EVENT, docName)

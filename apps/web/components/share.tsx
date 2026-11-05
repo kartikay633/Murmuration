@@ -86,8 +86,8 @@ export function SharePopover({ pageId, overrides: initial }: { pageId: string; o
               <div className="member" key={m.id}>
                 <Avatar name={m.name} ink={m.ink} size="md" />
                 <span className="grow">
-                  <span className="n">{m.name}{m.id === user.id ? ' (you)' : ''}</span>
-                  <span className="e">{m.email}</span>
+                  <span className="n">{m.name}{m.id === user.id ? ' (you)' : ''}{m.isBot && <span className="tag">practice</span>}</span>
+                  <span className="e">{m.isBot ? 'scripted collaborator' : m.email}</span>
                 </span>
                 <select
                   className="select"

@@ -414,6 +414,58 @@ h1.title-input { cursor: default; }
 .track:hover .tip, .track.drag .tip, .track:focus-visible .tip { opacity: 1; }
 .btn[aria-pressed="true"] { background: var(--paper-3); color: var(--ink); }
 
+/* ---------- Network Lab ---------- */
+.lab {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 100%; background: var(--raised);
+  border-left: 1px solid var(--rule); box-shadow: var(--shadow); transform: translateX(102%);
+  transition: transform .3s var(--ease); z-index: 45; display: flex; flex-direction: column;
+}
+.lab.open { transform: none; }
+.lab-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--rule); }
+.lab-head .row { display: flex; align-items: center; justify-content: space-between; }
+.lab-head h3 { font: 500 24px/1.1 var(--font-serif), serif; margin: 0; }
+.lab-head p { margin: 8px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+.lab-body { flex: 1; overflow: auto; padding: 4px 18px 24px; }
+.lab h4 { font: 500 10.5px/1 var(--font-mono), monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 22px 0 10px; }
+.lab-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.switch {
+  position: relative; width: 36px; height: 20px; border-radius: 999px; border: 0; background: var(--ink-4); cursor: pointer;
+  transition: background .2s; flex: none;
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper);
+  transition: transform .2s var(--ease);
+}
+.switch[aria-checked="true"] { background: var(--ink-moss); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+.lab-ctl { display: grid; grid-template-columns: 98px 1fr 62px; align-items: center; gap: 10px; margin-top: 14px; font-size: 12.5px; color: var(--ink-3); }
+.lab-ctl output { font-size: 12px; color: var(--ink); text-align: right; }
+.lab input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: none; cursor: pointer; }
+.lab input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: var(--rule-2); }
+.lab input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--rule-2); }
+.lab input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: var(--ink); border: 2px solid var(--raised); }
+.lab input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 2px solid var(--raised); }
+.lab-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 0; }
+.lab-stats div { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 9px; background: var(--paper); }
+.lab-stats dt { font-size: 11.5px; color: var(--ink-3); }
+.lab-stats dd { margin: 3px 0 0; font-size: 13px; color: var(--ink); }
+.fp { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
+.fp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp code { margin-left: auto; font: 500 12px var(--font-mono), monospace; padding: 3px 7px; border-radius: 5px; background: var(--paper-2); color: var(--ink); flex: none; }
+.fp code.off { background: color-mix(in srgb, var(--ink-ochre) 18%, transparent); }
+.verdict { margin-top: 14px; padding: 12px 14px; border-radius: 9px; font-size: 13px; line-height: 1.5; border: 1px solid var(--rule); display: flex; gap: 10px; align-items: flex-start; }
+.verdict i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--ink-moss); }
+.verdict.busy i { background: var(--ink-4); }
+.verdict.warn { border-color: color-mix(in srgb, var(--ink-ochre) 45%, transparent); background: color-mix(in srgb, var(--ink-ochre) 7%, transparent); }
+.verdict.warn i { background: var(--ink-ochre); }
+.verdict b { font-weight: 600; }
+.lab-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; margin: 12px 0 12px; }
+.lab-steps { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.tag {
+  font: 500 10px/1 var(--font-mono), monospace; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3);
+  border: 1px solid var(--rule-2); border-radius: 4px; padding: 2px 4px; margin-left: 6px; vertical-align: 1px;
+}
+
 /* ---------- Inbox ---------- */
 .badge {
   margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--ink-vermilion);

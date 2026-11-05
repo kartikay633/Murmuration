@@ -60,7 +60,9 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message }
   const [user] = await getDb().select().from(users).where(eq(users.email, parsed.data.email))
   // Same message either way, so the form doesn't reveal which emails have accounts.
-  if (!user || !(await verify(user.passwordHash, parsed.data.password))) {
+  const valid =
+    !!user && !user.isBot && user.passwordHash.startsWith('$argon2') && (await verify(user.passwordHash, parsed.data.password))
+  if (!user || !valid) {
     return { error: 'That email and password don’t match.' }
   }
   await startSession(user.id)

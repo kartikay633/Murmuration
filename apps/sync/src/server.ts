@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { WebSocket, WebSocketServer, type RawData } from 'ws'
+import * as Y from 'yjs'
 import {
   CLOSE,
   ERR,
@@ -16,6 +17,7 @@ import {
   encodeError,
   encodeEvent,
   encodeRole,
+  fingerprint,
   frame,
   pageDoc,
   parseDocName,
@@ -176,6 +178,11 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
           return this.onSync(docName, dec)
         case MSG.AWARENESS:
           return this.onAwareness(docName, dec)
+        case MSG.PROBE: {
+          const sub = this.subs.get(docName)
+          if (!sub) return
+          return this.send(encodeEvent(docName, { kind: 'probe', fp: fingerprint(Y.encodeStateVector(sub.room.doc)) }))
+        }
         default:
           this.send(encodeError(docName, ERR.BAD_MESSAGE, `unknown message type ${type}`))
       }

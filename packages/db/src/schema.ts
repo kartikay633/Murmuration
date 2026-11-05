@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   bigint,
   bigserial,
+  boolean,
   customType,
   index,
   jsonb,
@@ -27,6 +28,8 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   ink: text('ink').$type<Ink>().notNull(),
+  /** Practice collaborators: scripted accounts that can't sign in. */
+  isBot: boolean('is_bot').notNull().default(false),
   createdAt: created(),
 })
 

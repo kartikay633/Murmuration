@@ -13,6 +13,7 @@ export interface Member {
   email: string
   ink: Ink
   role: Role
+  isBot: boolean
 }
 
 export async function listWorkspaces(userId: string): Promise<WorkspaceSummary[]> {
@@ -26,7 +27,7 @@ export async function listWorkspaces(userId: string): Promise<WorkspaceSummary[]
 
 export async function listMembers(workspaceId: string): Promise<Member[]> {
   return getDb()
-    .select({ id: users.id, name: users.name, email: users.email, ink: users.ink, role: memberships.role })
+    .select({ id: users.id, name: users.name, email: users.email, ink: users.ink, role: memberships.role, isBot: users.isBot })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(eq(memberships.workspaceId, workspaceId))

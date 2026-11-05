@@ -32,7 +32,10 @@ await new Promise<void>((resolve) => {
   const off = handle.on('change', (s) => s.synced && (off(), resolve()))
 })
 if (handle.state.role !== 'editor' && handle.state.role !== 'admin' && handle.state.role !== 'owner') {
-  console.error(`${email} is "${handle.state.role}" on this page and can't type.`)
+  console.error(`${email} is "${handle.state.role}" on this page, so the server would refuse their edits. Pick an editor.`)
+  client.destroy()
+  await closeDb()
+  process.exit(1)
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
