@@ -208,6 +208,18 @@ kbd {
 .here { display: flex; gap: 3px; margin-right: 4px; }
 .here i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
 .item:hover .here { display: none; }
+.item.dragging { opacity: .45; }
+.item.drop-inside { background: color-mix(in srgb, var(--ink-cobalt) 12%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink-cobalt) 55%, transparent); }
+.item.drop-before::before, .item.drop-after::after {
+  content: ""; position: absolute; left: 8px; right: 6px; height: 2px; border-radius: 1px; background: var(--ink-cobalt); pointer-events: none;
+}
+.item.drop-before::before { top: -1px; }
+.item.drop-after::after { bottom: -1px; }
+.drop-root {
+  margin: 8px 4px 0; padding: 10px; border: 1.5px dashed var(--rule-2); border-radius: 8px; text-align: center;
+  font-size: 12px; color: var(--ink-3); transition: border-color .15s, background .15s;
+}
+.drop-root.on { border-color: var(--ink-cobalt); background: color-mix(in srgb, var(--ink-cobalt) 8%, transparent); color: var(--ink); }
 .empty-tree { padding: 6px 8px 0; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
 
 .side-foot { border-top: 1px solid var(--rule); padding: 8px; display: flex; align-items: center; gap: 10px; }

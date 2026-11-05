@@ -7,7 +7,8 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 ## What works today
 
 - **Real-time editing** on rich-text pages, with live cursors and selections in each person's colour.
-- **Workspaces and nested pages.** The page tree is itself a shared document, so new pages, renames and archives show up in everyone's sidebar instantly.
+- **Workspaces and nested pages.** The page tree is itself a shared document, so new pages, renames, moves and archives show up in everyone's sidebar instantly. Drag pages to reorder or nest them.
+- **A tree CRDT for moves.** Concurrent drags can't corrupt the tree. Every move is appended to a shared log with a Lamport timestamp; every replica replays the log in the same order and skips any move that would put a page inside its own subtree (after Kleppmann et al., *A highly-available move operation for replicated trees*). Same log, same tree, never a cycle.
 - **Presence** in the page header and in the sidebar (coloured dots show who is on which page).
 - **Roles**: owner, admin, editor, commenter, viewer — per workspace, overridable per page. Enforced **on the server for every edit**, not just hidden in the UI; a role change reaches people already on the page within seconds.
 - **Offline editing.** Pages are cached in IndexedDB. Edits made offline are sent when the connection returns and merge with everyone else's.
@@ -42,7 +43,7 @@ Browser (Next.js, React, Tiptap)          Sync server (Node, ws)                
 | `apps/web` | Next.js app: auth, workspace shell, editor, sharing |
 | `apps/sync` | WebSocket sync server and the practice-collaborator script |
 | `packages/client` | Browser/Node client for the sync protocol (reconnects, offline queue, save state) |
-| `packages/shared` | Protocol, roles, page-tree helpers |
+| `packages/shared` | Protocol, roles, the page-tree CRDT |
 | `packages/db` | Drizzle schema, access checks, seed data |
 
 ## Running it locally
@@ -70,7 +71,7 @@ npm run bot -w @murmuration/sync -- <pageId> rohan@murmuration.test "Hello from 
 npm test
 ```
 
-Unit tests also cover rebuilding any past version from the event log (with and without checkpoints) and attributing every character to its author alongside formatting.
+A fuzz test runs 10,000 random concurrent moves across 5 Yjs replicas with random partial syncing (three seeds) and checks that every replica ends with the identical tree and no cycles. Unit tests also cover rebuilding any past version from the event log (with and without checkpoints) and attributing every character to its author alongside formatting.
 
 The sync-server tests run real clients against a real server over WebSockets and check that:
 
@@ -93,5 +94,5 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Comments anchored to text, mentions, notifications
 - [x] Page history: time travel, restore, blame view
 - [x] Network Lab (latency, going offline, replica fingerprints), practice collaborators in the UI
-- [ ] Page-tree CRDT for concurrent moves
+- [x] Page-tree CRDT for concurrent moves
 - [ ] Multiple sync servers behind Redis, load tests, deployment

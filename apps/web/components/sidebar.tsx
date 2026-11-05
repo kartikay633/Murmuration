@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { useUnread } from '@/lib/comments'
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
 import { ancestors, can, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
 import { archivePage, createPage, createWorkspace, logout } from '@/app/actions'
+import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
-import { useTree, useTreeRole } from '@/lib/tree'
+import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
 import { Avatar } from './avatar'
 import { Icon, Mark } from './icons'
 import { useDismiss } from './menu'
@@ -101,6 +101,7 @@ export function Sidebar() {
   const [, startTransition] = useTransition()
   const pathname = usePathname()
   const unread = useUnread(workspace.id, [pathname])
+  const drag = useDrag()
 
   // Keep the open page visible in the tree.
   useEffect(() => {
@@ -161,6 +162,7 @@ export function Sidebar() {
         ) : roots.length === 0 ? (
           <p className="empty-tree">No pages yet.{canManage ? ' Use + to start one.' : ''}</p>
         ) : (
+          <DragContext.Provider value={drag}>
           <ul role="tree" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {roots.map((n) => (
               <TreeItem
@@ -177,6 +179,21 @@ export function Sidebar() {
               />
             ))}
           </ul>
+          {drag.id && (
+            <div
+              className={`drop-root${drag.over?.id === '__root' ? ' on' : ''}`}
+              onDragOver={(e) => (e.preventDefault(), drag.hover({ id: '__root', place: 'inside' }))}
+              onDragLeave={() => drag.hover(null)}
+              onDrop={(e) => {
+                e.preventDefault()
+                if (drag.id) tree.move(drag.id, null, 'inside')
+                drag.end()
+              }}
+            >
+              Drop here to move to the top level
+            </div>
+          )}
+          </DragContext.Provider>
         )}
       </nav>
       <div className="side-foot">
@@ -202,6 +219,31 @@ export function Sidebar() {
   )
 }
 
+interface DragState {
+  id: string | null
+  over: { id: string; place: DropPlace } | null
+  start(id: string): void
+  hover(over: { id: string; place: DropPlace } | null): void
+  end(): void
+}
+const DragContext = createContext<DragState>({ id: null, over: null, start() {}, hover() {}, end() {} })
+
+function useDrag(): DragState {
+  const [id, setId] = useState<string | null>(null)
+  const [over, setOver] = useState<DragState['over']>(null)
+  return useMemo(
+    () => ({
+      id,
+      over,
+      start: (x: string) => setId(x),
+      hover: (o: DragState['over']) =>
+        setOver((prev) => (prev?.id === o?.id && prev?.place === o?.place ? prev : o)),
+      end: () => (setId(null), setOver(null)),
+    }),
+    [id, over],
+  )
+}
+
 function TreeItem(props: {
   node: TreeNode
   depth: number
@@ -214,21 +256,56 @@ function TreeItem(props: {
   onArchive(node: TreeNode): void
 }) {
   const { node, depth, activeId, expanded, toggle, presence, canManage, onNew, onArchive } = props
-  const { workspace, setNavOpen } = useWorkspace()
+  const { workspace, setNavOpen, toast } = useWorkspace()
   const tree = useTree()
+  const drag = useContext(DragContext)
   const kids = tree.children.get(node.id) ?? []
   const isOpen = expanded.has(node.id)
   const [menu, setMenu] = useState(false)
   const close = useCallback(() => setMenu(false), [])
   const menuRef = useDismiss(menu, close)
   const here = presence.get(node.id) ?? []
+  const dropHere = drag.over?.id === node.id ? drag.over.place : null
+
+  const placeFor = (e: React.DragEvent<HTMLElement>): DropPlace => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const y = (e.clientY - r.top) / r.height
+    return y < 0.28 ? 'before' : y > 0.72 ? 'after' : 'inside'
+  }
 
   return (
     <li role="treeitem" aria-expanded={kids.length ? isOpen : undefined} aria-selected={activeId === node.id}>
       <div
-        className={`item${activeId === node.id ? ' active' : ''}${menu ? ' menu-open' : ''}`}
+        className={`item${activeId === node.id ? ' active' : ''}${menu ? ' menu-open' : ''}${dropHere ? ` drop-${dropHere}` : ''}${drag.id === node.id ? ' dragging' : ''}`}
         style={{ paddingLeft: 6 + depth * 14 }}
         ref={menuRef}
+        draggable={canManage}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', node.title || 'Untitled')
+          drag.start(node.id)
+        }}
+        onDragEnd={drag.end}
+        onDragOver={(e) => {
+          if (!drag.id) return
+          const place = placeFor(e)
+          if (!tree.canMove(drag.id, node.id, place)) return drag.hover(null)
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+          drag.hover({ id: node.id, place })
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) drag.hover(null)
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          if (!drag.id) return
+          const place = placeFor(e)
+          if (tree.move(drag.id, node.id, place)) {
+            if (place === 'inside' && !isOpen) toggle(node.id)
+          } else toast('A page can’t go inside one of its own subpages.')
+          drag.end()
+        }}
       >
         <button
           type="button"
@@ -269,6 +346,11 @@ function TreeItem(props: {
             <button className="menu-item" role="menuitem" type="button" onClick={() => (close(), onNew(node.id))}>
               <Icon name="plus" /> Add a page inside
             </button>
+            {node.parentId && tree.nodes.has(node.parentId) && (
+              <button className="menu-item" role="menuitem" type="button" onClick={() => (close(), tree.move(node.id, null, 'inside'))}>
+                <Icon name="layers" /> Move to top level
+              </button>
+            )}
             <div className="menu-sep" />
             <button className="menu-item danger" role="menuitem" type="button" onClick={() => (close(), onArchive(node))}>
               <Icon name="archive" /> Archive
