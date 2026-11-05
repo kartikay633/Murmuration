@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { ancestors, can, subtree, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
+import { unseenPages } from '@/app/visit-actions'
 import { archivePage, createPage, createWorkspace, logout, unarchivePage } from '@/app/actions'
 import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
@@ -105,6 +106,7 @@ export function Sidebar() {
   const unread = useUnread(workspace.id, [pathname])
   const drag = useDrag()
   const mod = useModKey()
+  const unseen = useUnseen(workspace.id, activeId ?? null)
 
   // Keep the open page visible in the tree.
   useEffect(() => {
@@ -193,6 +195,7 @@ export function Sidebar() {
         ) : roots.length === 0 ? (
           <p className="empty-tree">No pages yet.{canManage ? ' Use + to start one.' : ''}</p>
         ) : (
+          <UnseenContext.Provider value={unseen}>
           <DragContext.Provider value={drag}>
           <ul role="tree" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {roots.map((n) => (
@@ -225,6 +228,7 @@ export function Sidebar() {
             </div>
           )}
           </DragContext.Provider>
+          </UnseenContext.Provider>
         )}
         <TrashButton />
       </nav>
@@ -249,6 +253,30 @@ export function Sidebar() {
       </div>
     </aside>
   )
+}
+
+/** Pages other people changed since you last looked. */
+const UnseenContext = createContext<Set<string>>(new Set())
+
+function useUnseen(workspaceId: string, activeId: string | null): Set<string> {
+  const [ids, setIds] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    let live = true
+    const load = () => void unseenPages(workspaceId).then((r) => live && setIds(new Set(r))).catch(() => {})
+    load()
+    const t = setInterval(() => document.visibilityState === 'visible' && load(), 60_000)
+    return () => {
+      live = false
+      clearInterval(t)
+    }
+  }, [workspaceId, activeId])
+  // The page you're on is being seen right now.
+  return useMemo(() => {
+    if (!activeId || !ids.has(activeId)) return ids
+    const next = new Set(ids)
+    next.delete(activeId)
+    return next
+  }, [ids, activeId])
 }
 
 interface DragState {
@@ -297,6 +325,7 @@ function TreeItem(props: {
   const close = useCallback(() => setMenu(false), [])
   const menuRef = useDismiss(menu, close)
   const here = presence.get(node.id) ?? []
+  const changed = useContext(UnseenContext).has(node.id)
   const dropHere = drag.over?.id === node.id ? drag.over.place : null
 
   const placeFor = (e: React.DragEvent<HTMLElement>): DropPlace => {
@@ -356,6 +385,7 @@ function TreeItem(props: {
         >
           {node.title || 'Untitled'}
         </Link>
+        {changed && <span className="unseen-dot" title="Changed since you last looked" aria-label="Changed since you last looked" />}
         {here.length > 0 && (
           <span className="here" aria-label={`${here.map((u) => u.name).join(', ')} here`} title={here.map((u) => u.name).join(', ')}>
             {here.slice(0, 3).map((u) => (

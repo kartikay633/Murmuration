@@ -201,6 +201,21 @@ export const practiceRuns = pgTable('practice_runs', {
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * The last edit each person has seen on each page, for catch-up highlights
+ * and the "changed since you looked" dots in the sidebar.
+ */
+export const pageVisits = pgTable(
+  'page_visits',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    lastEventId: bigint('last_event_id', { mode: 'number' }).notNull().default(0),
+    visitedAt: timestamp('visited_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect

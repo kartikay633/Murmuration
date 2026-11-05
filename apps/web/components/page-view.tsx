@@ -9,6 +9,7 @@ import { useConnectionStatus, useDocState, useSharedDoc, useSyncClient } from '@
 import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
+import { CatchUpBanner } from './catch-up-banner'
 import { CommentLayer } from './comments'
 import { HistoryView } from './history'
 import { PageMenu } from './page-menu'
@@ -158,6 +159,7 @@ export function PageView({
       <div className="scroll" ref={scrollRef} hidden={!!history}>
         <div className={`page-wrap${stacked ? ' stacked' : ''}`} ref={wrapRef}>
         <article className="page">
+          <CatchUpBanner pageId={pageId} editor={editor} ready={state.synced} />
           <TitleField
             value={node?.title ?? ''}
             editable={canRename}

@@ -11,6 +11,7 @@ import type * as Y from 'yjs'
 import type { DocHandle } from '@murmuration/client'
 import { presenceUser, readPresenceUser } from '@murmuration/shared'
 import type { CurrentUser } from '@/lib/auth'
+import { CatchUp } from '@/lib/catch-up'
 import { CommentAnchors } from '@/lib/comment-anchors'
 import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
 
@@ -68,6 +69,7 @@ export function Editor({
         TaskItem.configure({ nested: true }),
         SlashKeys.configure({ onKey: slash.onKey }),
         Collaboration.configure({ document: doc }),
+        CatchUp,
         CommentAnchors.configure({ onActivate: (id) => activateRef?.current?.(id) }),
         CollaborationCaret.configure({
           provider: handle,
