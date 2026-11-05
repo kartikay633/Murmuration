@@ -86,7 +86,13 @@ npm run db:seed               # demo workspace and people
 npm run dev                   # web on :3100, sync on :4001
 ```
 
-Open http://localhost:3100 and sign in with one of the seeded accounts (see `packages/db/src/seed.ts`). Open **Lab** on any page and choose *Invite practice collaborators*, or open a second browser (or a private window) as another person. You can also run a single collaborator from the terminal:
+`npm run dev` shows Next.js developer overlays. To see the app exactly as users do, run the production build on one port instead:
+
+```bash
+npm run preview               # builds, then serves web + sync on http://localhost:3000
+```
+
+Open http://localhost:3100 and sign in with one of the seeded accounts (see `packages/db/src/seed.ts`). Open the ⋯ menu on any page, choose **Network Lab**, then *Invite practice collaborators*, or open a second browser (or a private window) as another person. You can also run a single collaborator from the terminal:
 
 ```bash
 npm run bot -w @murmuration/sync -- <pageId> rohan@murmuration.test "Hello from Rohan"

@@ -5,6 +5,7 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "concurrently -n web,sync -c blue,magenta \"npm:dev -w @murmuration/web\" \"npm:dev -w @murmuration/sync\"",
+    "preview": "npm run build -w @murmuration/web && npm run start:combined -w @murmuration/sync",
     "db:up": "docker compose up -d",
     "db:push": "npm run push -w @murmuration/db",
     "db:seed": "npm run seed -w @murmuration/db",

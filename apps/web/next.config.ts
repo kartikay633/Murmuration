@@ -21,6 +21,8 @@ const config: NextConfig = {
     NEXT_PUBLIC_SYNC_URL: process.env.NEXT_PUBLIC_SYNC_URL ?? '',
   },
   poweredByHeader: false,
+  // The floating dev badge sits on top of the sidebar footer; errors still open the overlay.
+  devIndicators: false,
   agentRules: false,
 }
 

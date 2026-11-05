@@ -6,11 +6,13 @@ import StarterKit from '@tiptap/starter-kit'
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { Placeholder } from '@tiptap/extensions'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
 import type * as Y from 'yjs'
 import type { DocHandle } from '@murmuration/client'
 import { presenceUser, readPresenceUser } from '@murmuration/shared'
 import type { CurrentUser } from '@/lib/auth'
 import { CommentAnchors } from '@/lib/comment-anchors'
+import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
 
 // Presence comes from other people's browsers, so treat it as untrusted:
 // only a known ink name ever reaches a style.
@@ -43,6 +45,7 @@ export function Editor({
   /** Called with a thread id when someone clicks highlighted text. */
   activateRef?: React.RefObject<((id: string) => void) | null>
 }) {
+  const slash = useSlashMenu()
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -51,7 +54,14 @@ export function Editor({
         // Collaboration brings its own history, scoped to this user's edits:
         // undo never takes back what someone else typed.
         StarterKit.configure({ undoRedo: false, heading: { levels: [1, 2, 3] } }),
-        Placeholder.configure({ placeholder: 'Start writing…' }),
+        Placeholder.configure({
+          // Empty page: an invitation. Empty line you're on: how to insert blocks.
+          placeholder: ({ editor: e, node }) =>
+            e.isEmpty ? 'Start writing, or press / for headings, lists and more…' : node.type.name === 'paragraph' ? 'Press / for blocks' : '',
+        }),
+        TaskList,
+        TaskItem.configure({ nested: true }),
+        SlashKeys.configure({ onKey: slash.onKey }),
         Collaboration.configure({ document: doc }),
         CommentAnchors.configure({ onActivate: (id) => activateRef?.current?.(id) }),
         CollaborationCaret.configure({
@@ -80,5 +90,10 @@ export function Editor({
     if (editor) onReady?.(editor)
   }, [editor, onReady])
 
-  return <EditorContent editor={editor} />
+  return (
+    <>
+      <EditorContent editor={editor} />
+      <SlashMenu editor={editor} keyRef={slash.keyRef} />
+    </>
+  )
 }
