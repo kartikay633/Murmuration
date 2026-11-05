@@ -14,10 +14,13 @@ import {
   can,
   encodeEmpty,
   encodeError,
+  encodeEvent,
   encodeRole,
   frame,
+  pageDoc,
   parseDocName,
   readHeader,
+  type LiveEvent,
   type Role,
 } from '@murmuration/shared'
 import { Room, type RoomOptions } from './room'
@@ -37,6 +40,8 @@ export interface SyncServerOptions {
   roleTtlMs?: number
   /** Keep an empty room in memory this long before unloading it (ms). */
   idleUnloadMs?: number
+  /** Source of out-of-band events (Postgres LISTEN in production). Returns an unsubscribe function. */
+  events?: (handler: (event: LiveEvent) => void) => () => void
   log?: (msg: string, err?: unknown) => void
 }
 
@@ -253,6 +258,23 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
     }
   }
 
+  /* ---------------- out-of-band events ---------------- */
+
+  async function onEvent(event: LiveEvent) {
+    if (event.kind === 'comments') {
+      const name = pageDoc(event.pageId)
+      const room = await rooms.get(name)?.catch(() => null)
+      if (!room) return
+      const data = encodeEvent(name, { kind: 'comments' })
+      for (const peer of room.peers.keys()) peer.send(data)
+    } else if (event.kind === 'inbox') {
+      const who = new Set(event.userIds)
+      const data = encodeEvent('', { kind: 'inbox' })
+      for (const c of connections) if (who.has(c.userId)) c.send(data)
+    }
+  }
+  const stopEvents = opts.events?.((e) => void onEvent(e).catch((err) => log('event failed', err)))
+
   /* ---------------- transport ---------------- */
 
   const http = createServer((req, res) => {
@@ -286,6 +308,7 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
     stats: () => ({ connections: connections.size, rooms: rooms.size }),
     async close() {
       clearInterval(heartbeat)
+      stopEvents?.()
       for (const c of connections) c.ws.close(1001, 'server shutting down')
       for (const t of unloadTimers.values()) clearTimeout(t)
       const loaded = await Promise.allSettled(rooms.values())

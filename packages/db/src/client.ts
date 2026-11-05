@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import type { LiveEvent } from '@murmuration/shared'
 import * as schema from './schema'
 
 type Db = ReturnType<typeof drizzle<typeof schema>>
@@ -15,6 +16,19 @@ export function getDb(): Db {
     g.__mmDb = drizzle(g.__mmSql, { schema })
   }
   return g.__mmDb
+}
+
+/** The raw postgres.js client, for LISTEN/NOTIFY. */
+export function getSql(): postgres.Sql {
+  getDb()
+  return g.__mmSql!
+}
+
+/** Channel the web app uses to tell sync servers that something changed. */
+export const EVENTS_CHANNEL = 'mm_events'
+
+export async function publish(event: LiveEvent) {
+  await getSql().notify(EVENTS_CHANNEL, JSON.stringify(event))
 }
 
 export async function closeDb() {

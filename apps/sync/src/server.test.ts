@@ -4,7 +4,7 @@ import * as Y from 'yjs'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as encoding from 'lib0/encoding'
 import { SyncClient, type DocHandle } from '@murmuration/client'
-import { MSG, encodeAuth, encodeEmpty, frame, pageDoc, type Role } from '@murmuration/shared'
+import { MSG, encodeAuth, encodeEmpty, frame, pageDoc, type LiveEvent, type Role } from '@murmuration/shared'
 import { createSyncServer, TOKEN_AUDIENCE, type SyncServer } from './server'
 import type { Access, Store, StoredRow } from './types'
 
@@ -190,6 +190,50 @@ describe('sync server', () => {
 
     const seenByServer = [...a.handle.awareness.getStates().values()].map((s) => s.user?.name)
     expect(seenByServer).not.toContain('Not Ana')
+  })
+
+  it('forwards out-of-band events to the page and to the right people', async () => {
+    const roles = new Roles()
+    roles.map.set('ana', 'editor').set('rohan', 'viewer')
+    let emit: (e: LiveEvent) => void = () => {}
+    server = await createSyncServer({
+      port: 0, secret: SECRET, store: new MemoryStore(), access: roles, flushMs: 10, log: () => {},
+      events: (h) => ((emit = h), () => {}),
+    })
+    const url = `ws://localhost:${server.port}`
+    const a = connect(url, 'ana')
+    const r = connect(url, 'rohan')
+    await waitFor(() => a.handle.state.synced && r.handle.state.synced)
+    const got: { who: string; docName: string; kind?: string }[] = []
+    a.client.on('event', (e) => got.push({ who: 'ana', docName: e.docName, kind: e.data.kind }))
+    r.client.on('event', (e) => got.push({ who: 'rohan', docName: e.docName, kind: e.data.kind }))
+
+    emit({ kind: 'comments', pageId: PAGE })
+    emit({ kind: 'inbox', userIds: ['rohan'] })
+    await waitFor(() => got.length === 3)
+    expect(got).toContainEqual({ who: 'ana', docName: DOC, kind: 'comments' })
+    expect(got).toContainEqual({ who: 'rohan', docName: DOC, kind: 'comments' })
+    expect(got).toContainEqual({ who: 'rohan', docName: '', kind: 'inbox' })
+  })
+
+  it('stops the presence timer it created when a document is closed', async () => {
+    const { roles, url } = await start()
+    roles.map.set('ana', 'editor')
+    const a = connect(url, 'ana')
+    await waitFor(() => a.handle.state.synced)
+    const aw = a.handle.awareness as unknown as { _checkInterval: ReturnType<typeof setInterval> | undefined }
+    let cleared = false
+    const original = clearInterval
+    globalThis.clearInterval = ((id: Parameters<typeof clearInterval>[0]) => {
+      if (id === aw._checkInterval) cleared = true
+      return original(id)
+    }) as typeof clearInterval
+    try {
+      a.client.close(DOC)
+    } finally {
+      globalThis.clearInterval = original
+    }
+    expect(cleared).toBe(true)
   })
 
   it('closes a socket that sends a bad token', async () => {

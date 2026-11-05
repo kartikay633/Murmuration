@@ -1,4 +1,5 @@
-import { closeDb } from '@murmuration/db'
+import { closeDb, EVENTS_CHANNEL, getSql } from '@murmuration/db'
+import type { LiveEvent } from '@murmuration/shared'
 import { pgAccess, pgStore } from './pg'
 import { createSyncServer } from './server'
 
@@ -13,6 +14,16 @@ const server = await createSyncServer({
   secret,
   store: pgStore,
   access: pgAccess,
+  events(handler) {
+    const listening = getSql().listen(EVENTS_CHANNEL, (payload) => {
+      try {
+        handler(JSON.parse(payload) as LiveEvent)
+      } catch {
+        console.error('[sync] ignored malformed event', payload)
+      }
+    })
+    return () => void listening.then((l) => l.unlisten())
+  },
 })
 console.log(`[sync] listening on ws://localhost:${server.port}`)
 

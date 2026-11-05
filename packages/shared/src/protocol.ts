@@ -35,7 +35,24 @@ export const MSG = {
   AUTH: 7,
   /** server -> client: token accepted; subscriptions may follow */
   READY: 8,
+  /** server -> client: something outside the document changed (JSON payload, see LiveEvent) */
+  EVENT: 9,
 } as const
+
+/**
+ * Changes that live in Postgres rather than in a Yjs document. The web app
+ * publishes them with NOTIFY; sync servers LISTEN and forward them to the
+ * affected sockets.
+ */
+export type LiveEvent =
+  | { kind: 'comments'; pageId: string }
+  | { kind: 'inbox'; userIds: string[] }
+
+export function encodeEvent(docName: string, payload: object): Uint8Array {
+  const enc = frame(MSG.EVENT, docName)
+  encoding.writeVarString(enc, JSON.stringify(payload))
+  return encoding.toUint8Array(enc)
+}
 export type MsgType = (typeof MSG)[keyof typeof MSG]
 
 /** Sub-types inside a SYNC payload (same numbering as y-protocols/sync). */

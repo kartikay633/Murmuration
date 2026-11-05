@@ -85,7 +85,12 @@ export interface SyncClientOptions {
   tap?: (direction: 'in' | 'out', bytes: number) => void
 }
 
-export class SyncClient extends Emitter<{ status: Status }> {
+export interface ClientEvent {
+  docName: string
+  data: { kind?: string } & Record<string, unknown>
+}
+
+export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> {
   status: Status = 'connecting'
   private ws: WebSocket | null = null
   private ready = false
@@ -102,9 +107,11 @@ export class SyncClient extends Emitter<{ status: Status }> {
 
   /* ---------------- documents ---------------- */
 
-  open(name: string, doc: Y.Doc, awareness = new awarenessProtocol.Awareness(doc)): DocHandle {
+  open(name: string, doc: Y.Doc, given?: awarenessProtocol.Awareness): DocHandle {
     const existing = this.handles.get(name)
     if (existing) return existing
+    // Awareness runs a timer; if we create it, we're the ones who must stop it on close.
+    const awareness = given ?? new awarenessProtocol.Awareness(doc)
     const h = new DocHandle(this, name, doc, awareness)
     this.handles.set(name, h)
 
@@ -133,6 +140,7 @@ export class SyncClient extends Emitter<{ status: Status }> {
       doc.off('update', onUpdate)
       awareness.off('update', onAwareness)
     })
+    if (!given) this.owned.add(name)
 
     if (this.ready) this.subscribe(h)
     return h
@@ -152,7 +160,9 @@ export class SyncClient extends Emitter<{ status: Status }> {
       this.send(encoding.toUint8Array(enc))
       this.send(encodeEmpty(MSG.UNSUBSCRIBE, name))
     }
+    if (this.owned.delete(name)) h.awareness.destroy()
   }
+  private owned = new Set<string>()
 
   get(name: string) {
     return this.handles.get(name)
@@ -271,6 +281,14 @@ export class SyncClient extends Emitter<{ status: Status }> {
       this.attempts = 0
       this.setStatus('online')
       for (const h of this.handles.values()) this.subscribe(h)
+      return
+    }
+    if (type === MSG.EVENT) {
+      try {
+        this.emit('event', { docName, data: JSON.parse(decoding.readVarString(dec)) })
+      } catch {
+        /* ignore malformed */
+      }
       return
     }
     const h = this.handles.get(docName)
