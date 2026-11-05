@@ -3,9 +3,15 @@ import * as awarenessProtocol from 'y-protocols/awareness'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { MSG, SYNC_STEP_1, SYNC_UPDATE, encodeSaved, frame } from '@murmuration/shared'
+import { docChannel, type Bus } from './bus'
 import type { Peer, Store, StoredRow } from './types'
 
 const LOAD = Symbol('load')
+/** Changes that arrived from another sync server: shown to our clients, but neither re-published nor stored. */
+const REMOTE = Symbol('remote')
+
+/** Messages between sync servers on a document's channel. */
+const BUS = { UPDATE: 0, AWARENESS: 1, SV_REQUEST: 2, SV_REPLY: 3 } as const
 
 /** Marks an update as coming from a specific client message. */
 export class Origin {
@@ -18,6 +24,10 @@ export interface RoomOptions {
   /** Write a full snapshot after this many stored events. */
   snapshotEvery: number
   log?: (msg: string, err?: unknown) => void
+  /** Other sync servers, when running more than one. */
+  bus?: Bus
+  /** This server's id on the bus. */
+  instanceId?: string
 }
 
 /**
@@ -38,6 +48,9 @@ export class Room {
   private lastEventId = 0
   private sinceSnapshot = 0
   private destroyed = false
+  /** Presence client ids that belong to people on other servers. */
+  private remoteIds = new Set<number>()
+  private unsubscribe: (() => void) | null = null
 
   constructor(
     readonly name: string,
@@ -50,10 +63,80 @@ export class Room {
   }
 
   async load() {
+    // Listen to other servers before reading the database, so nothing falls in the gap.
+    const buffered: Uint8Array[] = []
+    let loaded = false
+    if (this.opts.bus) {
+      this.unsubscribe = this.opts.bus.subscribe(docChannel(this.name), (data) =>
+        loaded ? this.onBus(data) : buffered.push(data),
+      )
+    }
     const { updates, lastEventId, eventsSinceSnapshot } = await this.store.load(this.name)
     Y.transact(this.doc, () => updates.forEach((u) => Y.applyUpdate(this.doc, u, LOAD)), LOAD)
     this.lastEventId = lastEventId
     this.sinceSnapshot = eventsSinceSnapshot
+    loaded = true
+    buffered.forEach((d) => this.onBus(d))
+    // Ask servers that already have this document for edits they haven't stored yet.
+    this.publish(BUS.SV_REQUEST, '', Y.encodeStateVector(this.doc))
+  }
+
+  /* ---------------- other sync servers ---------------- */
+
+  private publish(kind: number, to: string, payload: Uint8Array) {
+    const bus = this.opts.bus
+    if (!bus || this.destroyed) return
+    const enc = encoding.createEncoder()
+    encoding.writeVarUint(enc, kind)
+    encoding.writeVarString(enc, this.opts.instanceId ?? '')
+    encoding.writeVarString(enc, to)
+    encoding.writeVarUint8Array(enc, payload)
+    bus.publish(docChannel(this.name), encoding.toUint8Array(enc))
+  }
+
+  private onBus(data: Uint8Array) {
+    if (this.destroyed) return
+    let kind: number, from: string, to: string, payload: Uint8Array
+    try {
+      const dec = decoding.createDecoder(data)
+      kind = decoding.readVarUint(dec)
+      from = decoding.readVarString(dec)
+      to = decoding.readVarString(dec)
+      payload = decoding.readVarUint8Array(dec)
+    } catch {
+      return
+    }
+    if (from === this.opts.instanceId) return // our own message coming back
+    if (to && to !== this.opts.instanceId) return
+    switch (kind) {
+      case BUS.UPDATE:
+      case BUS.SV_REPLY:
+        Y.applyUpdate(this.doc, payload, REMOTE)
+        return
+      case BUS.AWARENESS: {
+        try {
+          const dec = decoding.createDecoder(payload)
+          const n = decoding.readVarUint(dec)
+          for (let i = 0; i < n; i++) {
+            this.remoteIds.add(decoding.readVarUint(dec))
+            decoding.readVarUint(dec)
+            decoding.readVarString(dec)
+          }
+        } catch {
+          return
+        }
+        awarenessProtocol.applyAwarenessUpdate(this.awareness, payload, REMOTE)
+        return
+      }
+      case BUS.SV_REQUEST: {
+        // Another server just opened this document: send what it's missing and who's here.
+        this.publish(BUS.SV_REPLY, from, Y.encodeStateAsUpdate(this.doc, payload))
+        // Only ids that still have presence; a client may have claimed an id and since cleared it.
+        const local = [...this.peers.values()].flatMap((ids) => [...ids]).filter((id) => this.awareness.meta.has(id))
+        if (local.length) this.publish(BUS.AWARENESS, from, awarenessProtocol.encodeAwarenessUpdate(this.awareness, local))
+        return
+      }
+    }
   }
 
   /* ---------------- peers ---------------- */
@@ -114,6 +197,16 @@ export class Room {
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {
     if (origin === LOAD || this.destroyed) return
+    if (origin === REMOTE) {
+      // Already stored by the server its author is connected to; just show it to ours.
+      const enc = frame(MSG.SYNC, this.name)
+      encoding.writeVarUint(enc, SYNC_UPDATE)
+      encoding.writeVarUint8Array(enc, update)
+      const data = encoding.toUint8Array(enc)
+      for (const p of this.peers.keys()) p.send(data)
+      return
+    }
+    this.publish(BUS.UPDATE, '', update)
     const from = origin instanceof Origin ? origin : null
     this.pending.push({ authorId: from?.peer.userId ?? null, update })
     if (from) this.awaiting.set(from.peer, Math.max(from.seq, this.awaiting.get(from.peer) ?? 0))
@@ -151,6 +244,7 @@ export class Room {
     for (const [other, set] of this.peers) {
       if (other !== peer && ids.some((id) => set.has(id))) return false
     }
+    if (ids.some((id) => this.remoteIds.has(id))) return false
     ids.forEach((id) => owned.add(id))
     awarenessProtocol.applyAwarenessUpdate(this.awareness, update, peer)
     return true
@@ -165,6 +259,11 @@ export class Room {
     if (!changed.length) return
     const data = this.awarenessFrame(changed)
     for (const p of this.peers.keys()) if (p !== origin) p.send(data)
+    if (origin === REMOTE) {
+      removed.forEach((id) => this.remoteIds.delete(id))
+    } else {
+      this.publish(BUS.AWARENESS, '', awarenessProtocol.encodeAwarenessUpdate(this.awareness, changed))
+    }
   }
 
   private awarenessFrame(clients: number[]): Uint8Array {
@@ -239,6 +338,7 @@ export class Room {
     if (this.flushTimer) clearTimeout(this.flushTimer)
     this.flushTimer = null
     await this.flush()
+    this.unsubscribe?.()
     this.destroyed = true
     this.awareness.destroy()
     this.doc.destroy()

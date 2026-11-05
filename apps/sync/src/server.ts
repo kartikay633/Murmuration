@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { createServer, type Server as HttpServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { jwtVerify } from 'jose'
@@ -25,6 +26,7 @@ import {
   type LiveEvent,
   type Role,
 } from '@murmuration/shared'
+import type { Bus } from './bus'
 import { Room, type RoomOptions } from './room'
 import type { Access, Peer, Store } from './types'
 
@@ -42,6 +44,8 @@ export interface SyncServerOptions {
   roleTtlMs?: number
   /** Keep an empty room in memory this long before unloading it (ms). */
   idleUnloadMs?: number
+  /** Link to other sync servers (Redis in production). Omit to run a single server. */
+  bus?: Bus
   /** Source of out-of-band events (Postgres LISTEN in production). Returns an unsubscribe function. */
   events?: (handler: (event: LiveEvent) => void) => () => void
   log?: (msg: string, err?: unknown) => void
@@ -64,7 +68,14 @@ interface Subscription {
 
 export async function createSyncServer(opts: SyncServerOptions): Promise<SyncServer> {
   const log = opts.log ?? ((m: string, e?: unknown) => console.log(`[sync] ${m}`, e ?? ''))
-  const roomOpts: RoomOptions = { flushMs: opts.flushMs ?? 250, snapshotEvery: opts.snapshotEvery ?? 200, log }
+  const instanceId = randomUUID()
+  const roomOpts: RoomOptions = {
+    flushMs: opts.flushMs ?? 250,
+    snapshotEvery: opts.snapshotEvery ?? 200,
+    log,
+    bus: opts.bus,
+    instanceId,
+  }
   const roleTtl = opts.roleTtlMs ?? 5000
   const idleUnload = opts.idleUnloadMs ?? 30_000
   const key = new TextEncoder().encode(opts.secret)
@@ -287,7 +298,7 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
   const http = createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' })
-      res.end(JSON.stringify({ ok: true, connections: connections.size, rooms: rooms.size }))
+      res.end(JSON.stringify({ ok: true, instance: instanceId.slice(0, 8), connections: connections.size, rooms: rooms.size }))
       return
     }
     res.writeHead(404).end()

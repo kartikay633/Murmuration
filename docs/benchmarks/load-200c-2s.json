@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-05T17:30:54.363Z",
+  "clients": 200,
+  "syncServers": 2,
+  "workerProcesses": 5,
+  "seconds": 30,
+  "edits": 3014,
+  "editsPerSecond": 100,
+  "deliveriesPerSecond": 19986,
+  "deliveriesMeasured": 44990,
+  "latencyMs": {
+    "p50": 11.9,
+    "p95": 49.8,
+    "p99": 430,
+    "max": 716.8
+  },
+  "generatorMaxEventLoopLagMs": 164,
+  "connectAllMs": 373,
+  "converged": true,
+  "distinctFingerprintsAtEnd": 1,
+  "settleMs": 549
+}

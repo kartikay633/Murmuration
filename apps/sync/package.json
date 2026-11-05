@@ -8,11 +8,13 @@
     "start": "tsx --env-file=../../.env src/index.ts",
     "bot": "tsx --env-file=../../.env src/bot.ts",
     "typecheck": "tsc -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "load": "tsx --env-file=../../.env src/load.ts"
   },
   "dependencies": {
     "@murmuration/db": "*",
     "@murmuration/shared": "*",
+    "ioredis": "^6.0.0",
     "jose": "^6.2.15",
     "lib0": "^0.2.119",
     "ws": "^8.22.1",

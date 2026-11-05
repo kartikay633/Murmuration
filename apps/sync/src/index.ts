@@ -1,5 +1,6 @@
 import { closeDb, EVENTS_CHANNEL, getSql } from '@murmuration/db'
 import type { LiveEvent } from '@murmuration/shared'
+import { redisBus } from './bus'
 import { pgAccess, pgStore } from './pg'
 import { runPractice } from './practice'
 import { createSyncServer } from './server'
@@ -11,11 +12,14 @@ if (!secret || secret.length < 32) {
 }
 
 let port = Number(process.env.SYNC_PORT ?? 4001)
+// With REDIS_URL set, any number of sync servers can run side by side.
+const bus = process.env.REDIS_URL ? await redisBus(process.env.REDIS_URL) : undefined
 const server = await createSyncServer({
   port: Number(process.env.SYNC_PORT ?? 4001),
   secret,
   store: pgStore,
   access: pgAccess,
+  bus,
   events(handler) {
     const listening = getSql().listen(EVENTS_CHANNEL, (payload) => {
       let event: LiveEvent
@@ -32,7 +36,7 @@ const server = await createSyncServer({
   },
 })
 port = server.port
-console.log(`[sync] listening on ws://localhost:${server.port}`)
+console.log(`[sync] listening on ws://localhost:${server.port}${bus ? ' (linked to other servers through Redis)' : ''}`)
 
 let stopping = false
 async function shutdown() {
@@ -40,6 +44,7 @@ async function shutdown() {
   stopping = true
   console.log('[sync] flushing documents and shutting down…')
   await server.close()
+  await bus?.close?.()
   await closeDb()
   process.exit(0)
 }

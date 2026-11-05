@@ -5,6 +5,7 @@ import * as awarenessProtocol from 'y-protocols/awareness'
 import * as encoding from 'lib0/encoding'
 import { SyncClient, type DocHandle } from '@murmuration/client'
 import { MSG, encodeAuth, encodeEmpty, fingerprint, frame, pageDoc, type LiveEvent, type Role } from '@murmuration/shared'
+import { MemoryBus } from './bus'
 import { createSyncServer, TOKEN_AUDIENCE, type SyncServer } from './server'
 import type { Access, Store, StoredRow } from './types'
 
@@ -263,5 +264,58 @@ describe('sync server', () => {
     await new Promise((r) => (ws.onopen = r))
     ws.send(encodeAuth('not-a-token'))
     expect(await closed).toBe(4401)
+  })
+})
+
+describe('several sync servers', () => {
+  const extra: SyncServer[] = []
+  afterEach(async () => {
+    clients.splice(0).forEach((c) => c.destroy())
+    await Promise.all(extra.splice(0).map((s) => s.close()))
+  })
+
+  async function pair(flushMs = 10) {
+    const store = new MemoryStore()
+    const roles = new Roles()
+    const bus = new MemoryBus()
+    const make = () => createSyncServer({ port: 0, secret: SECRET, store, access: roles, bus, flushMs, log: () => {} })
+    const [s1, s2] = await Promise.all([make(), make()])
+    extra.push(s1, s2)
+    return { store, roles, bus, url1: `ws://localhost:${s1.port}`, url2: `ws://localhost:${s2.port}` }
+  }
+
+  it('lets people on different servers edit together and see each other', async () => {
+    const { roles, store, url1, url2 } = await pair()
+    roles.map.set('ana', 'editor').set('rohan', 'editor')
+    const a = connect(url1, 'ana')
+    const b = connect(url2, 'rohan')
+    a.handle.awareness.setLocalStateField('user', { name: 'Ana' })
+    b.handle.awareness.setLocalStateField('user', { name: 'Rohan' })
+    await waitFor(() => a.handle.state.synced && b.handle.state.synced)
+
+    a.text.insert(0, 'from server one. ')
+    b.text.insert(0, 'from server two. ')
+    await waitFor(() => a.text.toString() === b.text.toString() && a.text.length === 34)
+    await waitFor(() => a.handle.state.saved && b.handle.state.saved)
+    const names = (h: typeof a) => [...h.handle.awareness.getStates().values()].map((s) => s.user?.name).sort()
+    await waitFor(() => names(a).length === 2 && names(b).length === 2)
+    expect(names(a)).toEqual(['Ana', 'Rohan'])
+
+    // Each edit is stored once, by the server its author is connected to.
+    const authors = (store.events.get(DOC) ?? []).map((e) => e.row.authorId).sort()
+    expect(authors).toEqual(['ana', 'rohan'])
+  })
+
+  it('gives a server that opens a document late the edits others have not stored yet', async () => {
+    const { roles, store, url1, url2 } = await pair(60_000) // nothing gets written to the store
+    roles.map.set('ana', 'editor').set('rohan', 'editor')
+    const a = connect(url1, 'ana')
+    await waitFor(() => a.handle.state.synced)
+    a.text.insert(0, 'only in memory on server one')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(store.events.get(DOC) ?? []).toHaveLength(0)
+
+    const b = connect(url2, 'rohan')
+    await waitFor(() => b.text.toString() === 'only in memory on server one', 3000)
   })
 })

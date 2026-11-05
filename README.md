@@ -46,6 +46,27 @@ Browser (Next.js, React, Tiptap)          Sync server (Node, ws)                
 | `packages/shared` | Protocol, roles, the page-tree CRDT |
 | `packages/db` | Drizzle schema, access checks, seed data |
 
+## Scaling and performance
+
+Any number of sync servers can run side by side. Each server that has a document open subscribes to that document's Redis channel and publishes every edit and presence change from its own clients; a server that opens a document late asks the others for edits they haven't stored yet. Each edit is stored once, by the server its author is connected to. Comment and inbox events reach every server through Postgres `LISTEN/NOTIFY`.
+
+Load test on one Windows laptop (everything on localhost): **200 clients** in 5 worker processes, connected across **2 sync servers linked through Redis**, each client making an edit every ~2 s to the same document for 30 s.
+
+| Measure | Result |
+|---|---|
+| Edits | 100 / s (about 20,000 deliveries / s) |
+| Delivery latency, edit made → seen by a client on either server | p50 **11.9 ms**, p95 **49.8 ms**, p99 430 ms |
+| All 200 copies identical after the edits stopped | yes, within **0.55 s** |
+| Connect and sync 200 clients | 373 ms |
+
+The generator records its own event-loop lag (164 ms at worst in this run), which accounts for the p99 tail. Raw results: [`docs/benchmarks`](docs/benchmarks). To reproduce:
+
+```bash
+REDIS_URL=redis://localhost:6380 SYNC_PORT=4011 npm start -w @murmuration/sync
+REDIS_URL=redis://localhost:6380 SYNC_PORT=4012 npm start -w @murmuration/sync
+npm run load -w @murmuration/sync -- --clients 200 --seconds 30 --servers ws://localhost:4011,ws://localhost:4012
+```
+
 ## Running it locally
 
 Requires Node 20+ and Docker.
@@ -85,6 +106,7 @@ The sync-server tests run real clients against a real server over WebSockets and
 - edits stay in order under added latency, and the server's fingerprint matches every converged client
 - closing a document stops its presence timer (no leaks as you move between pages)
 - a bad token closes the socket
+- people connected to different sync servers converge and see each other, each edit is stored exactly once, and a server that opens a document late receives edits nobody has stored yet
 
 ## Roadmap
 
@@ -95,4 +117,5 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Page history: time travel, restore, blame view
 - [x] Network Lab (latency, going offline, replica fingerprints), practice collaborators in the UI
 - [x] Page-tree CRDT for concurrent moves
-- [ ] Multiple sync servers behind Redis, load tests, deployment
+- [x] Multiple sync servers behind Redis, load tests
+- [ ] Public deployment
