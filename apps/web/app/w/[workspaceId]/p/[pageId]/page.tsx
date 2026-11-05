@@ -21,10 +21,10 @@ export default async function PageRoute({
   searchParams,
 }: {
   params: Params
-  searchParams: Promise<{ thread?: string; new?: string }>
+  searchParams: Promise<{ thread?: string; new?: string; follow?: string }>
 }) {
   const { workspaceId, pageId } = await params
-  const { thread, new: isNew } = await searchParams
+  const { thread, new: isNew, follow } = await searchParams
   if (!UUID.test(pageId)) notFound()
   const user = await requireUser()
   const access = await pageRole(user.id, pageId)
@@ -37,6 +37,7 @@ export default async function PageRoute({
       overrides={await pageOverrides(pageId)}
       focusThread={thread && UUID.test(thread) ? thread : null}
       isNew={isNew === '1'}
+      follow={follow && UUID.test(follow) ? follow : null}
     />
   )
 }

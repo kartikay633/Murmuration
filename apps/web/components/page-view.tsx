@@ -10,6 +10,7 @@ import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { CatchUpBanner } from './catch-up-banner'
+import { FollowPill, useFollow } from './follow'
 import { CommentLayer } from './comments'
 import { HistoryView } from './history'
 import { PageMenu } from './page-menu'
@@ -25,8 +26,11 @@ export function PageView({
   overrides,
   focusThread,
   isNew = false,
+  follow = null,
 }: {
   isNew?: boolean
+  /** Start out following this person (they moved here while we followed them). */
+  follow?: string | null
   pageId: string
   initialRole: Role
   overrides: Record<string, Role>
@@ -68,6 +72,7 @@ export function PageView({
   const closeLab = useCallback(() => setLabOpen(false), [])
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
+  const followMode = useFollow({ pageId, editor, handle: shared?.handle ?? null, scrollEl: scrollRef, initial: follow })
 
   // Coming back online: say what was merged, so the moment is visible.
   useEffect(() => {
@@ -115,7 +120,7 @@ export function PageView({
         </nav>
         <div className="spacer" />
         <SyncStatus saved={state.saved} />
-        {shared && <PresenceStack handle={shared.handle} selfId={user.id} />}
+        {shared && <PresenceStack handle={shared.handle} selfId={user.id} following={followMode.following} onFollow={followMode.start} />}
         <button
           className="icon-btn"
           type="button"
@@ -156,7 +161,13 @@ export function PageView({
           stacked={stacked}
         />
       )}
-      <div className="scroll" ref={scrollRef} hidden={!!history}>
+      <FollowPill person={followMode.following ? followMode.person : undefined} onStop={followMode.stop} />
+      <div
+        className={`scroll${followMode.following ? ' following' : ''}`}
+        ref={scrollRef}
+        hidden={!!history}
+        style={followMode.person ? ({ '--c': `var(--ink-${followMode.person.ink})` } as React.CSSProperties) : undefined}
+      >
         <div className={`page-wrap${stacked ? ' stacked' : ''}`} ref={wrapRef}>
         <article className="page">
           <CatchUpBanner pageId={pageId} editor={editor} ready={state.synced} />
@@ -341,7 +352,17 @@ function SyncStatus({ saved }: { saved: boolean }) {
   )
 }
 
-function PresenceStack({ handle, selfId }: { handle: DocHandle; selfId: string }) {
+function PresenceStack({
+  handle,
+  selfId,
+  following,
+  onFollow,
+}: {
+  handle: DocHandle
+  selfId: string
+  following: string | null
+  onFollow(id: string): void
+}) {
   const store = useMemo(() => {
     let snap: PresenceUser[] = []
     const a = handle.awareness
@@ -368,9 +389,18 @@ function PresenceStack({ handle, selfId }: { handle: DocHandle; selfId: string }
   return (
     <div className="stack" aria-label={`Also here: ${people.map((p) => p.name).join(', ')}`}>
       {people.slice(0, 4).map((p) => (
-        <span className="p" key={p.id} title={`${p.name} is here`}>
+        <button
+          type="button"
+          className={`p${following === p.id ? ' on' : ''}`}
+          key={p.id}
+          style={{ '--c': `var(--ink-${p.ink})` } as React.CSSProperties}
+          title={following === p.id ? `Stop following ${p.name}` : `Follow ${p.name}`}
+          aria-label={following === p.id ? `Stop following ${p.name}` : `Follow ${p.name}`}
+          aria-pressed={following === p.id}
+          onClick={() => onFollow(p.id)}
+        >
           <Avatar name={p.name} ink={p.ink} size="lg" />
-        </span>
+        </button>
       ))}
       {people.length > 4 && <span className="more">+{people.length - 4}</span>}
     </div>

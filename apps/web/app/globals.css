@@ -298,7 +298,9 @@ kbd {
 .status[data-tone="busy"] .dot { background: var(--ink-4); }
 .status[data-tone="warn"] .dot { background: var(--ink-ochre); }
 .stack { display: flex; align-items: center; padding-left: 6px; }
-.stack .p { margin-left: -6px; position: relative; display: inline-flex; border-radius: 50%; }
+.stack .p { margin-left: -6px; position: relative; display: inline-flex; border-radius: 50%; border: 0; padding: 0; background: none; cursor: pointer; }
+.stack .p:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.stack .p.on .av { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c); }
 .stack .av { box-shadow: 0 0 0 2px var(--paper); }
 .stack .p::after {
   content: ""; position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%;
@@ -400,6 +402,16 @@ kbd {
 /* Sidebar: pages changed since you last looked */
 .unseen-dot { flex: none; width: 6px; height: 6px; margin: 0 4px; border-radius: 50%; background: var(--ink); }
 .item:has(.unseen-dot) .label { color: var(--ink); font-weight: 600; }
+
+/* Follow mode */
+.scroll.following { box-shadow: inset 0 0 0 2px var(--c); }
+.follow-pill {
+  position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 20; display: inline-flex; align-items: center; gap: 8px;
+  height: 34px; padding: 0 4px 0 6px; border-radius: 999px; background: var(--ink); color: var(--paper);
+  font: 500 13px var(--font-sans), sans-serif; box-shadow: var(--shadow); animation: pop .14s var(--ease);
+}
+.follow-pill .icon-btn { color: inherit; }
+.follow-pill .icon-btn:hover { background: color-mix(in srgb, var(--paper) 16%, transparent); }
 
 /* Trash */
 .trash-wrap { position: relative; margin-top: 10px; }
