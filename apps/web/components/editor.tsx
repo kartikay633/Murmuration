@@ -7,10 +7,14 @@ import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { Placeholder } from '@tiptap/extensions'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
+import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
+import Highlight from '@tiptap/extension-highlight'
 import type * as Y from 'yjs'
 import type { DocHandle } from '@murmuration/client'
 import { presenceUser, readPresenceUser } from '@murmuration/shared'
 import type { CurrentUser } from '@/lib/auth'
+import { Callout } from '@/lib/callout'
 import { CatchUp } from '@/lib/catch-up'
 import { CommentAnchors } from '@/lib/comment-anchors'
 import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
@@ -67,6 +71,16 @@ export function Editor({
         }),
         TaskList,
         TaskItem.configure({ nested: true }),
+        Table.configure({ resizable: false }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        // Open/closed is each reader's own choice, not part of the shared page.
+        Details.configure({ persist: false, HTMLAttributes: { class: 'toggle-block' } }),
+        DetailsSummary,
+        DetailsContent,
+        Callout,
+        Highlight,
         SlashKeys.configure({ onKey: slash.onKey }),
         Collaboration.configure({ document: doc }),
         CatchUp,

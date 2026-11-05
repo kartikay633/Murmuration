@@ -19,6 +19,7 @@ import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
+import { TableBar } from './table-bar'
 import { TemplatePicker } from './template-picker'
 import { useWorkspace } from './workspace'
 
@@ -236,6 +237,7 @@ export function PageView({
             </div>
           )}
         </article>
+        <TableBar editor={editor} wrapRef={wrapRef} />
         <CommentLayer
           editor={editor}
           pageId={pageId}

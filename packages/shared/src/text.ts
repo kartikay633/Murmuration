@@ -79,6 +79,7 @@ function inlineMd(children: XmlNode[]): string {
         if (a.bold) core = `**${core}**`
         if (a.italic) core = `_${core}_`
         if (a.strike) core = `~~${core}~~`
+        if (a.highlight) core = `==${core}==`
         const link = a.link as { href?: unknown } | undefined
         if (link && typeof link.href === 'string') core = `[${core}](${link.href.replace(/[()\s]/g, encodeURIComponent)})`
       }
@@ -146,6 +147,42 @@ function blockMd(n: XmlElementLike, depth = 0): string[] {
     }
     case 'horizontalRule':
       return ['---']
+    case 'callout':
+      return [
+        kids(n)
+          .flatMap((c) => (isText(c) ? [] : blockMd(c, depth)))
+          .join('\n\n')
+          .split('\n')
+          .map((l) => (l ? `> ${l}` : '>'))
+          .join('\n'),
+      ]
+    case 'details': {
+      const parts = kids(n).filter((c): c is XmlElementLike => !isText(c))
+      const summary = parts.find((c) => c.nodeName === 'detailsSummary')
+      const content = parts.find((c) => c.nodeName === 'detailsContent')
+      const body = content ? kids(content).flatMap((c) => (isText(c) ? [] : blockMd(c, depth))).join('\n\n') : ''
+      return [`<details>\n<summary>${summary ? inlineMd(kids(summary)) : ''}</summary>\n\n${body}\n\n</details>`]
+    }
+    case 'table': {
+      const rows = kids(n)
+        .filter((r): r is XmlElementLike => !isText(r))
+        .map((r) =>
+          kids(r)
+            .filter((c): c is XmlElementLike => !isText(c))
+            .map((c) =>
+              kids(c)
+                .flatMap((b) => (isText(b) ? [] : blockMd(b, depth)))
+                .join(' ')
+                .replace(/\|/g, '\\|')
+                .replace(/\n+/g, ' '),
+            ),
+        )
+      if (!rows.length) return []
+      const width = Math.max(...rows.map((r) => r.length))
+      const pad = (r: string[]) => [...r, ...Array(width - r.length).fill('')]
+      const line = (r: string[]) => `| ${pad(r).join(' | ')} |`
+      return [[line(rows[0]!), `| ${Array(width).fill('---').join(' | ')} |`, ...rows.slice(1).map(line)].join('\n')]
+    }
     default:
       return [inlineMd(kids(n))]
   }

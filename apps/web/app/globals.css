@@ -413,6 +413,44 @@ kbd {
 .follow-pill .icon-btn { color: inherit; }
 .follow-pill .icon-btn:hover { background: color-mix(in srgb, var(--paper) 16%, transparent); }
 
+/* Tables */
+.ProseMirror .tableWrapper { overflow-x: auto; margin: 4px 0; }
+.ProseMirror table { border-collapse: collapse; width: 100%; table-layout: fixed; font: 15px/1.5 var(--font-sans), sans-serif; }
+.ProseMirror th, .ProseMirror td { border: 1px solid var(--rule); padding: 7px 10px; vertical-align: top; min-width: 80px; position: relative; }
+.ProseMirror th { background: var(--paper-2, var(--raised)); font-weight: 600; text-align: left; }
+.ProseMirror :is(th, td) > * + * { margin-top: 6px; }
+.ProseMirror .selectedCell::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--ink-cobalt) 14%, transparent); pointer-events: none; }
+.tbl-bar {
+  position: absolute; z-index: 24; display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px; border-radius: 9px;
+  background: var(--raised); border: 1px solid var(--rule); box-shadow: var(--shadow); animation: pop .12s var(--ease); white-space: nowrap;
+}
+.tbl-bar .fmt-sep { background: var(--rule); }
+.tbl-btn { height: 26px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font: 500 12.5px var(--font-sans), sans-serif; cursor: pointer; }
+.tbl-btn:hover { background: var(--paper-3); color: var(--ink); }
+.tbl-btn.danger { color: var(--danger); }
+
+/* Toggles */
+.ProseMirror .toggle-block { display: flex; gap: 4px; align-items: flex-start; }
+.ProseMirror .toggle-block > button {
+  flex: none; width: 24px; height: 24px; margin-top: 3px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-3); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ProseMirror .toggle-block > button::before { content: ''; width: 0; height: 0; border-left: 6px solid currentColor; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; transition: transform .15s var(--ease); }
+.ProseMirror .toggle-block.is-open > button::before { transform: rotate(90deg); }
+.ProseMirror .toggle-block > button:hover { background: var(--paper-3); color: var(--ink); }
+.ProseMirror .toggle-block > div { flex: 1; min-width: 0; }
+.ProseMirror .toggle-block summary { list-style: none; font-weight: 500; }
+.ProseMirror .toggle-block summary::-webkit-details-marker { display: none; }
+.ProseMirror .toggle-block [data-type="detailsContent"] { margin-top: 6px; }
+.ProseMirror .toggle-block:not(.is-open) [data-type="detailsContent"] { display: none; }
+
+/* Callouts */
+.ProseMirror .callout { padding: 12px 16px; border-radius: 10px; background: color-mix(in srgb, var(--ink-ochre) 10%, var(--paper)); border: 1px solid color-mix(in srgb, var(--ink-ochre) 26%, transparent); }
+.ProseMirror .callout > * + * { margin-top: 8px; }
+
+/* Highlight */
+.ProseMirror mark { background: color-mix(in srgb, var(--ink-ochre) 30%, transparent); color: inherit; border-radius: 2px; padding: 0 1px; }
+
 /* Templates on an empty page */
 .tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 20px; font: 13px var(--font-sans), sans-serif; animation: fade .2s var(--ease); }
 .tpl-label { color: var(--ink-3); margin-right: 4px; }

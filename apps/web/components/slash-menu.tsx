@@ -30,6 +30,9 @@ const ITEMS: BlockItem[] = [
   { id: 'numbered', label: 'Numbered list', hint: 'A list with numbers', keywords: 'numbered ordered list ol 1', glyph: '1.', run: (c) => c.toggleOrderedList() },
   { id: 'quote', label: 'Quote', hint: 'Set off a quotation', keywords: 'quote blockquote citation', glyph: '“', run: (c) => c.toggleBlockquote() },
   { id: 'code', label: 'Code block', hint: 'Monospaced code', keywords: 'code snippet pre', glyph: '</>', run: (c) => c.toggleCodeBlock() },
+  { id: 'table', label: 'Table', hint: 'Rows and columns', keywords: 'table grid rows columns spreadsheet', glyph: '▦', run: (c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
+  { id: 'toggle', label: 'Toggle', hint: 'A section you can fold away', keywords: 'toggle details collapse fold accordion', glyph: '▸', run: (c) => c.setDetails() },
+  { id: 'callout', label: 'Callout', hint: 'Make a note stand out', keywords: 'callout note info warning box aside', glyph: '!', run: (c) => c.toggleCallout() },
   { id: 'divider', label: 'Divider', hint: 'A horizontal rule', keywords: 'divider rule line hr separator', glyph: '—', run: (c) => c.setHorizontalRule() },
 ]
 
@@ -105,6 +108,14 @@ export function SlashMenu({ editor, keyRef }: { editor: Editor | null; keyRef: R
       if (!editor || !menu) return
       item.run(editor.chain().focus().deleteRange({ from: menu.from, to: menu.to })).run()
       setMenu(null)
+      // A new toggle starts open, so Enter in its title moves into its body.
+      // (The view has already rendered the new node; no need to wait a frame.)
+      if (item.id === 'toggle') {
+        const at = editor.view.domAtPos(editor.state.selection.from).node
+        const block = (at instanceof Element ? at : at.parentElement)?.closest('.toggle-block')
+        if (block && !block.classList.contains('is-open')) block.querySelector<HTMLButtonElement>(':scope > button')?.click()
+        editor.view.focus()
+      }
     },
     [editor, menu],
   )

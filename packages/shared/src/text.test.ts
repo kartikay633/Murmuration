@@ -67,3 +67,40 @@ describe('page text', () => {
     )
   })
 })
+
+describe('markdown for richer blocks', () => {
+  it('exports tables, toggles, callouts and highlights', () => {
+    const doc = new Y.Doc()
+    const f = doc.getXmlFragment('default')
+    const cell = (name: string, t: string) => el(name, {}, [el('paragraph', {}, [txt([[t]])])])
+    f.insert(0, [
+      el('table', {}, [
+        el('tableRow', {}, [cell('tableHeader', 'Name'), cell('tableHeader', 'Owner')]),
+        el('tableRow', {}, [cell('tableCell', 'Sync'), cell('tableCell', 'a|b')]),
+      ]),
+      el('details', {}, [
+        el('detailsSummary', {}, [txt([['More']])]),
+        el('detailsContent', {}, [el('paragraph', {}, [txt([['Hidden']])])]),
+      ]),
+      el('callout', {}, [el('paragraph', {}, [txt([['Note '], ['this', { highlight: true }]])])]),
+    ])
+    expect(fragmentMarkdown(f)).toBe(
+      [
+        '| Name | Owner |',
+        '| --- | --- |',
+        '| Sync | a\\|b |',
+        '',
+        '<details>',
+        '<summary>More</summary>',
+        '',
+        'Hidden',
+        '',
+        '</details>',
+        '',
+        '> Note ==this==',
+        '',
+      ].join('\n'),
+    )
+    expect(fragmentText(f)).toContain('Hidden')
+  })
+})

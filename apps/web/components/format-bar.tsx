@@ -140,6 +140,7 @@ export function FormatBar({
               {mark('italic', 'Italic', <i>I</i>, () => editor.chain().focus().toggleItalic().run(), `${mod}I`)}
               {mark('underline', 'Underline', <u>U</u>, () => editor.chain().focus().toggleUnderline().run(), `${mod}U`)}
               {mark('strike', 'Strikethrough', <s>S</s>, () => editor.chain().focus().toggleStrike().run(), `${mod}Shift+S`)}
+              {mark('highlight', 'Highlight', <Icon name="highlight" />, () => editor.chain().focus().toggleHighlight().run(), `${mod}Shift+H`)}
               {mark('code', 'Inline code', <Icon name="code" />, () => editor.chain().focus().toggleCode().run(), `${mod}E`)}
               {mark(
                 'link',
