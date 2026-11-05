@@ -53,7 +53,12 @@ export function Editor({
       extensions: [
         // Collaboration brings its own history, scoped to this user's edits:
         // undo never takes back what someone else typed.
-        StarterKit.configure({ undoRedo: false, heading: { levels: [1, 2, 3] } }),
+        StarterKit.configure({
+          undoRedo: false,
+          heading: { levels: [1, 2, 3] },
+          // Clicking a link while writing places the cursor; Ctrl/Cmd-click (or read-only) opens it.
+          link: { openOnClick: false, autolink: true, defaultProtocol: 'https', HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: '_blank' } },
+        }),
         Placeholder.configure({
           // Empty page: an invitation. Empty line you're on: how to insert blocks.
           placeholder: ({ editor: e, node }) =>
@@ -77,6 +82,13 @@ export function Editor({
       ],
       editorProps: {
         attributes: { 'aria-label': 'Page content', spellcheck: 'true' },
+        handleClick: (view, _pos, event) => {
+          const a = (event.target as HTMLElement).closest('a[href]')
+          if (!a || !view.dom.contains(a)) return false
+          if (view.editable && !(event.metaKey || event.ctrlKey)) return false
+          window.open((a as HTMLAnchorElement).href, '_blank', 'noopener,noreferrer')
+          return true
+        },
       },
     },
     [doc, handle],

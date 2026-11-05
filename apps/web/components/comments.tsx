@@ -16,6 +16,7 @@ import { anchorFor, anchorRanges, findQuote, setAnchors, type Anchor } from '@/l
 import { splitMentions, timeAgo } from '@/lib/comments'
 import { Avatar } from './avatar'
 import { Icon } from './icons'
+import { FormatBar } from './format-bar'
 import { MentionInput } from './mention-input'
 import { useWorkspace } from './workspace'
 
@@ -52,6 +53,7 @@ export function CommentLayer({
 }) {
   const { toast, user, role: wsRole } = useWorkspace()
   const canComment = can(role, 'comment')
+  const canEdit = can(role, 'edit')
   const isAdmin = can(wsRole, 'manage-members')
   const [active, setActive] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -204,8 +206,10 @@ export function CommentLayer({
   const [bubble, setBubble] = useState<{ top: number; left: number; from: number; to: number } | null>(null)
 
   useEffect(() => {
-    if (!editor || !canComment) return
+    if (!editor || !(canComment || canEdit)) return
     const onSel = () => {
+      // Typing a link address moves focus into the toolbar; keep it open.
+      if (document.activeElement?.closest('.fmt-bar')) return
       const sel = window.getSelection()
       const wrap = wrapRef.current
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !wrap) return setBubble(null)
@@ -221,11 +225,14 @@ export function CommentLayer({
       if (to <= from || !editor.state.doc.textBetween(from, to, ' ').trim()) return setBubble(null)
       const rect = range.getBoundingClientRect()
       const w = wrap.getBoundingClientRect()
-      setBubble({ top: rect.top - w.top - 42, left: Math.max(8, rect.left - w.left + rect.width / 2 - 52), from, to })
+      // Centre the toolbar over the selection, but keep it inside the page.
+      const half = canEdit ? 150 : 52
+      const centre = Math.min(Math.max(rect.left - w.left + rect.width / 2, half + 4), w.width - half - 4)
+      setBubble({ top: rect.top - w.top - 44, left: centre, from, to })
     }
     document.addEventListener('selectionchange', onSel)
     return () => document.removeEventListener('selectionchange', onSel)
-  }, [editor, canComment, wrapRef])
+  }, [editor, canComment, canEdit, wrapRef])
 
   const startDraft = useCallback(
     (from: number, to: number) => {
@@ -298,17 +305,17 @@ export function CommentLayer({
 
   return (
     <>
-      {bubble && !draft && (
-        <button
-          className="comment-bubble"
-          type="button"
-          style={{ top: bubble.top, left: bubble.left }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => startDraft(bubble.from, bubble.to)}
-          title="Comment on this text (Ctrl+Alt+M)"
-        >
-          <Icon name="comment" /> Comment
-        </button>
+      {bubble && !draft && editor && (
+        <FormatBar
+          editor={editor}
+          top={bubble.top}
+          left={bubble.left}
+          canEdit={canEdit}
+          canComment={canComment}
+          range={bubble}
+          onDone={() => setBubble(null)}
+          onComment={() => startDraft(bubble.from, bubble.to)}
+        />
       )}
       <aside className="rail" aria-label="Comments" ref={railRef} onClick={() => setActive(null)}>
         {stacked && (visible.length > 0 || draft) && <div className="eyebrow rail-title">Comments</div>}
