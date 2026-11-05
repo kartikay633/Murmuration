@@ -7,7 +7,7 @@
 import { SignJWT } from 'jose'
 import * as Y from 'yjs'
 import { SyncClient, type DocHandle } from '@murmuration/client'
-import { commentThreads, comments, eq, getDb, inArray, notifications, publish, users } from '@murmuration/db'
+import { claimPracticeRun, commentThreads, comments, eq, getDb, inArray, notifications, publish, users } from '@murmuration/db'
 import { fingerprint, pageDoc, presenceUser, type Ink } from '@murmuration/shared'
 import { TOKEN_AUDIENCE } from './server'
 
@@ -28,9 +28,11 @@ interface Bot {
 
 export async function runPractice(
   opts: { pageId: string; workspaceId: string; visitorId: string },
-  ctx: { port: number; secret: string; log: (m: string, e?: unknown) => void },
+  ctx: { url: string; secret: string; log: (m: string, e?: unknown) => void },
 ) {
   if (running.has(opts.pageId)) return
+  // Every sync server hears the request; only the one that claims it runs the session.
+  if (!(await claimPracticeRun(opts.pageId).catch(() => false))) return
   running.add(opts.pageId)
   const bots: Bot[] = []
   try {
@@ -43,7 +45,7 @@ export async function runPractice(
 
     for (const p of people.sort((a, b) => a.name.localeCompare(b.name))) {
       const client = new SyncClient({
-        url: `ws://localhost:${ctx.port}`,
+        url: ctx.url,
         getToken: () =>
           new SignJWT({ practice: true })
             .setProtectedHeader({ alg: 'HS256' })

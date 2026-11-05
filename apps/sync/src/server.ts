@@ -46,6 +46,10 @@ export interface SyncServerOptions {
   idleUnloadMs?: number
   /** Link to other sync servers (Redis in production). Omit to run a single server. */
   bus?: Bus
+  /** Share an existing HTTP server instead of listening on `port`; only upgrades on `path` are taken. */
+  attach?: { server: HttpServer; path: string }
+  /** Browser origins allowed to open a socket. Empty means any. */
+  allowedOrigins?: string[]
   /** Source of out-of-band events (Postgres LISTEN in production). Returns an unsubscribe function. */
   events?: (handler: (event: LiveEvent) => void) => () => void
   log?: (msg: string, err?: unknown) => void
@@ -54,6 +58,8 @@ export interface SyncServerOptions {
 export interface SyncServer {
   port: number
   http: HttpServer
+  /** JSON for a health endpoint. */
+  health(): string
   stats(): { connections: number; rooms: number }
   close(): Promise<void>
 }
@@ -295,15 +301,45 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
 
   /* ---------------- transport ---------------- */
 
-  const http = createServer((req, res) => {
-    if (req.url === '/health') {
-      res.writeHead(200, { 'content-type': 'application/json' })
-      res.end(JSON.stringify({ ok: true, instance: instanceId.slice(0, 8), connections: connections.size, rooms: rooms.size }))
-      return
-    }
-    res.writeHead(404).end()
-  })
-  const wss = new WebSocketServer({ server: http, maxPayload: 8 * 1024 * 1024 })
+  // Browsers always send Origin; refuse sockets opened by other sites. Non-browser
+  // clients (practice collaborators, load tests) send none and still need a valid token.
+  const allowed = opts.allowedOrigins?.filter(Boolean) ?? []
+  const originOk = (origin: string | undefined) => !origin || !allowed.length || allowed.includes(origin)
+
+  const health = () =>
+    JSON.stringify({ ok: true, instance: instanceId.slice(0, 8), connections: connections.size, rooms: rooms.size })
+
+  let http: HttpServer
+  let wss: WebSocketServer
+  if (opts.attach) {
+    // Share a port with another HTTP server (the web app); take only upgrades on our path.
+    http = opts.attach.server
+    wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 * 1024 })
+    const path = opts.attach.path
+    http.on('upgrade', (req, socket, head) => {
+      const url = new URL(req.url ?? '/', 'http://x')
+      if (url.pathname !== path) return
+      if (!originOk(req.headers.origin)) {
+        socket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
+        return
+      }
+      wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
+    })
+  } else {
+    http = createServer((req, res) => {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(health())
+        return
+      }
+      res.writeHead(404).end()
+    })
+    wss = new WebSocketServer({
+      server: http,
+      maxPayload: 8 * 1024 * 1024,
+      verifyClient: ({ origin }: { origin: string }) => originOk(origin),
+    })
+  }
   wss.on('connection', (ws) => new Connection(ws))
 
   const heartbeat = setInterval(() => {
@@ -317,12 +353,13 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
     }
   }, 30_000)
 
-  await new Promise<void>((resolve) => http.listen(opts.port, resolve))
-  const port = (http.address() as AddressInfo).port
+  if (!opts.attach) await new Promise<void>((resolve) => http.listen(opts.port, resolve))
+  const port = (http.address() as AddressInfo | null)?.port ?? opts.port
 
   return {
     port,
     http,
+    health,
     stats: () => ({ connections: connections.size, rooms: rooms.size }),
     async close() {
       clearInterval(heartbeat)
@@ -333,7 +370,7 @@ export async function createSyncServer(opts: SyncServerOptions): Promise<SyncSer
       await Promise.all(loaded.map((r) => (r.status === 'fulfilled' ? r.value.destroy() : null)))
       rooms.clear()
       await new Promise<void>((resolve) => wss.close(() => resolve()))
-      await new Promise<void>((resolve) => http.close(() => resolve()))
+      if (!opts.attach) await new Promise<void>((resolve) => http.close(() => resolve()))
     },
   }
 }

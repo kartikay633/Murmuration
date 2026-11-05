@@ -2,10 +2,12 @@
 
 import { hash, verify } from '@node-rs/argon2'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import {
   and,
+  createGuest,
   eq,
   getDb,
   memberships,
@@ -55,9 +57,24 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password.'),
 })
 
+/** At most 10 sign-in attempts per email and address every 5 minutes. */
+const attempts = new Map<string, number[]>()
+function tooManyAttempts(key: string): boolean {
+  const now = Date.now()
+  const recent = (attempts.get(key) ?? []).filter((t) => now - t < 5 * 60_000)
+  recent.push(now)
+  attempts.set(key, recent)
+  if (attempts.size > 10_000) attempts.clear()
+  return recent.length > 10
+}
+
 export async function login(_: FormState, form: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(form))
   if (!parsed.success) return { error: parsed.error.issues[0]?.message }
+  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
+  if (tooManyAttempts(`${parsed.data.email}|${ip}`)) {
+    return { error: 'Too many attempts. Wait a few minutes and try again.' }
+  }
   const [user] = await getDb().select().from(users).where(eq(users.email, parsed.data.email))
   // Same message either way, so the form doesn't reveal which emails have accounts.
   const valid =
@@ -68,6 +85,13 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
   await startSession(user.id)
   const next = String(form.get('next') ?? '')
   redirect(next.startsWith('/w/') ? next : '/')
+}
+
+/** One click, no sign-up: a private sandbox account that is removed after a week. */
+export async function tryDemo() {
+  const { userId, workspaceId, firstPageId } = await createGuest()
+  await startSession(userId)
+  redirect(`/w/${workspaceId}/p/${firstPageId}`)
 }
 
 export async function logout() {

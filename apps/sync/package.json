@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/index.ts",
-    "start": "tsx --env-file=../../.env src/index.ts",
+    "start": "tsx --env-file-if-exists=../../.env src/index.ts",
     "bot": "tsx --env-file=../../.env src/bot.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run",
-    "load": "tsx --env-file=../../.env src/load.ts"
+    "load": "tsx --env-file=../../.env src/load.ts",
+    "start:combined": "tsx --env-file-if-exists=../../.env src/combined.ts"
   },
   "dependencies": {
     "@murmuration/db": "*",
@@ -19,13 +20,14 @@
     "lib0": "^0.2.119",
     "ws": "^8.22.1",
     "y-protocols": "^1.0.7",
-    "yjs": "^13.6.33"
+    "yjs": "^13.6.33",
+    "next": "^16.4.5",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@murmuration/client": "*",
     "@types/node": "^24.0.0",
     "@types/ws": "^8.18.2",
-    "tsx": "^4.23.15",
     "vitest": "^5.1.0"
   }
 }

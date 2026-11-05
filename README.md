@@ -4,6 +4,10 @@ A shared workspace where many people write the same page at once — and where y
 
 Thousands of starlings move as one shape with no leader. Murmuration's pages work the same way: every browser keeps its own copy, edits merge without locks, and every copy ends up identical, even after hours offline.
 
+## Try it
+
+Click **Try the demo** on the sign-in page: you get a private sandbox with sample pages, no sign-up. Then open **Lab** and invite the practice collaborators.
+
 ## What works today
 
 - **Real-time editing** on rich-text pages, with live cursors and selections in each person's colour.
@@ -86,6 +90,10 @@ Open http://localhost:3100 and sign in with one of the seeded accounts (see `pac
 npm run bot -w @murmuration/sync -- <pageId> rohan@murmuration.test "Hello from Rohan"
 ```
 
+## Deploying
+
+Everything can run as one service: `apps/sync/src/combined.ts` serves the Next.js app and the sync WebSocket (`/sync`) on the same port. [`render.yaml`](render.yaml) deploys it with Postgres in one step; see [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Tests
 
 ```bash
@@ -118,4 +126,5 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Network Lab (latency, going offline, replica fingerprints), practice collaborators in the UI
 - [x] Page-tree CRDT for concurrent moves
 - [x] Multiple sync servers behind Redis, load tests
-- [ ] Public deployment
+- [x] One-click guest demo, origin checks, sign-in rate limiting
+- [ ] Public deployment ([guide](docs/DEPLOY.md): Render Blueprint, one service plus Postgres)

@@ -12,10 +12,13 @@ try {
 
 const config: NextConfig = {
   transpilePackages: ['@murmuration/shared', '@murmuration/db', '@murmuration/client'],
-  serverExternalPackages: ['@node-rs/argon2', 'postgres'],
+  // Load these from node_modules on the server instead of bundling them. Yjs in particular
+  // must be a single copy per process: the web app and the sync server share one in production.
+  serverExternalPackages: ['@node-rs/argon2', 'postgres', 'yjs', 'y-protocols', 'lib0'],
   turbopack: { root },
   env: {
-    NEXT_PUBLIC_SYNC_URL: process.env.NEXT_PUBLIC_SYNC_URL ?? 'ws://localhost:4001',
+    // Empty means "same host, /sync" (single-service deployment).
+    NEXT_PUBLIC_SYNC_URL: process.env.NEXT_PUBLIC_SYNC_URL ?? '',
   },
   poweredByHeader: false,
   agentRules: false,

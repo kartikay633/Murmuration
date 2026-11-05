@@ -1,4 +1,6 @@
 export * from './schema'
 export * from './client'
 export * from './access'
+export * from './content'
+export * from './demo'
 export { and, asc, desc, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'

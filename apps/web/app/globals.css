@@ -155,6 +155,9 @@ kbd {
 .auth-card form { display: grid; gap: 16px; }
 .auth-card .switch { margin-top: 22px; font-size: 13px; color: var(--ink-3); }
 .auth-card .switch a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule-2); }
+.demo-form { margin-top: 18px; }
+.or { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; color: var(--ink-4); font: 500 11px var(--font-mono), monospace; text-transform: uppercase; letter-spacing: .08em; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .demo-hint {
   margin-top: 26px; padding: 12px 14px; border: 1px dashed var(--rule-2); border-radius: 9px;
   font-size: 12.5px; color: var(--ink-3); line-height: 1.55;

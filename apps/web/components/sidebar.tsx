@@ -201,7 +201,7 @@ export function Sidebar() {
         <span className="grow">
           <span className="who">{user.name}</span>
           <br />
-          <span className="role">{workspace.role}</span>
+          <span className="role">{user.isGuest ? 'guest · resets in 7 days' : workspace.role}</span>
         </span>
         <ThemeToggle />
         <form

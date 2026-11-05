@@ -7,6 +7,7 @@ import { hash } from '@node-rs/argon2'
 import * as Y from 'yjs'
 import { keyBetween, pageDoc, TREE_PAGES, treeDoc, type Ink, type Role } from '@murmuration/shared'
 import { closeDb, getDb } from './client'
+import { writeBlocks, type Block } from './content'
 import { activity, docEvents, docSnapshots, memberships, pageRoles, pages, sessions, users, workspaces } from './schema'
 
 export const DEMO_PASSWORD = 'murmuration-demo'
@@ -17,41 +18,6 @@ const PEOPLE: { name: string; email: string; ink: Ink; role: Role }[] = [
   { name: 'Rohan Mehta', email: 'rohan@murmuration.test', ink: 'cobalt', role: 'editor' },
   { name: 'Mei Tanaka', email: 'mei@murmuration.test', ink: 'moss', role: 'commenter' },
 ]
-
-type Block =
-  | { p: string }
-  | { h: string; level?: 2 | 3 }
-  | { ul: string[] }
-
-function writeBlocks(fragment: Y.XmlFragment, blocks: Block[]) {
-  const paragraph = (text: string) => {
-    const el = new Y.XmlElement('paragraph')
-    el.insert(0, [new Y.XmlText(text)])
-    return el
-  }
-  fragment.insert(
-    fragment.length,
-    blocks.map((b) => {
-      if ('p' in b) return paragraph(b.p)
-      if ('h' in b) {
-        const el = new Y.XmlElement('heading')
-        el.setAttribute('level', (b.level ?? 2) as never)
-        el.insert(0, [new Y.XmlText(b.h)])
-        return el
-      }
-      const list = new Y.XmlElement('bulletList')
-      list.insert(
-        0,
-        b.ul.map((t) => {
-          const li = new Y.XmlElement('listItem')
-          li.insert(0, [paragraph(t)])
-          return li
-        }),
-      )
-      return list
-    }),
-  )
-}
 
 const PAGES: { key: string; title: string; parent?: string; author: number; blocks: Block[] }[] = [
   {

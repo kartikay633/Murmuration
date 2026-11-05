@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useActionState } from 'react'
 import { signup } from '@/app/actions'
+import { DemoButton } from '@/components/demo-button'
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signup, undefined)
@@ -40,6 +41,7 @@ export function SignupForm() {
           {pending ? 'Creating…' : 'Create account'}
         </button>
       </form>
+      <DemoButton />
       <p className="switch">
         Already have an account? <Link href="/login">Sign in</Link>
       </p>

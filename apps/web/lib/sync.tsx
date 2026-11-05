@@ -22,7 +22,11 @@ async function fetchToken(): Promise<string> {
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [client, setClient] = useState<SyncClient | null>(null)
   useEffect(() => {
-    const c = new SyncClient({ url: process.env.NEXT_PUBLIC_SYNC_URL!, getToken: fetchToken })
+    // A separate sync server in development; in a single-service deployment it lives at /sync on this host.
+    const url =
+      process.env.NEXT_PUBLIC_SYNC_URL ||
+      `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/sync`
+    const c = new SyncClient({ url, getToken: fetchToken })
     setClient(c)
     return () => c.destroy()
   }, [])

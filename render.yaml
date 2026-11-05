@@ -1,0 +1,36 @@
+# Render Blueprint: one web service (Next.js and the sync server on one port)
+# plus Postgres. In the Render dashboard: New > Blueprint > pick this repo.
+# See docs/DEPLOY.md.
+
+services:
+  - type: web
+    name: murmuration
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build -w @murmuration/web
+    # Bring the schema up to date, then serve web pages and /sync from one process.
+    startCommand: npm run db:push && npm run start:combined -w @murmuration/sync
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: murmuration-db
+          property: connectionString
+      - key: SYNC_TOKEN_SECRET
+        generateValue: true
+      # Set to your site's address after the first deploy, e.g. https://murmuration.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+databases:
+  - name: murmuration-db
+    plan: free
+    region: singapore
+    databaseName: murmuration
+    user: murmuration

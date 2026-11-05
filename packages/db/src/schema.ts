@@ -30,6 +30,8 @@ export const users = pgTable('users', {
   ink: text('ink').$type<Ink>().notNull(),
   /** Practice collaborators: scripted accounts that can't sign in. */
   isBot: boolean('is_bot').notNull().default(false),
+  /** One-click demo accounts; removed automatically after a week. */
+  isGuest: boolean('is_guest').notNull().default(false),
   createdAt: created(),
 })
 
@@ -184,6 +186,15 @@ export const notifications = pgTable(
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 )
+
+/**
+ * Which page has practice collaborators running. Every sync server hears the
+ * request (Postgres NOTIFY); the one that claims this row runs the session.
+ */
+export const practiceRuns = pgTable('practice_runs', {
+  pageId: uuid('page_id').primaryKey().references(() => pages.id, { onDelete: 'cascade' }),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect

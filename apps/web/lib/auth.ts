@@ -13,6 +13,7 @@ export interface CurrentUser {
   name: string
   email: string
   ink: Ink
+  isGuest: boolean
 }
 
 const digest = (token: string) => createHash('sha256').update(token).digest('hex')
@@ -42,7 +43,7 @@ export const currentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = (await cookies()).get(COOKIE)?.value
   if (!token) return null
   const [row] = await getDb()
-    .select({ id: users.id, name: users.name, email: users.email, ink: users.ink })
+    .select({ id: users.id, name: users.name, email: users.email, ink: users.ink, isGuest: users.isGuest })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.id, digest(token)), gt(sessions.expiresAt, new Date())))
