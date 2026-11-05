@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { ancestors, can, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
 import { archivePage, createPage, createWorkspace, logout, unarchivePage } from '@/app/actions'
 import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
+import { openPalette, useModKey } from './command-palette'
 import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
 import { Avatar } from './avatar'
 import { Icon } from './icons'
@@ -102,6 +103,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const unread = useUnread(workspace.id, [pathname])
   const drag = useDrag()
+  const mod = useModKey()
 
   // Keep the open page visible in the tree.
   useEffect(() => {
@@ -123,6 +125,15 @@ export function Sidebar() {
       setNavOpen(false)
       router.push(`/w/${workspace.id}/p/${res.id}?new=1`)
     })
+
+  // "New page" from the command palette.
+  const newPageRef = useRef(newPage)
+  newPageRef.current = newPage
+  useEffect(() => {
+    const on = () => newPageRef.current(null)
+    window.addEventListener('mm:new-page', on)
+    return () => window.removeEventListener('mm:new-page', on)
+  }, [])
 
   const archive = (node: TreeNode) =>
     startTransition(async () => {
@@ -149,6 +160,11 @@ export function Sidebar() {
     <aside className="sidebar" aria-label="Workspace navigation">
       <WorkspaceSwitcher />
       <nav className="nav">
+        <button type="button" className="item search-item" style={{ paddingLeft: 8, gap: 8 }} onClick={openPalette}>
+          <Icon name="search" />
+          <span className="label">Search</span>
+          <kbd className="nav-kbd">{mod}K</kbd>
+        </button>
         <Link
           href={`/w/${workspace.id}/inbox`}
           className={`item${pathname.endsWith('/inbox') ? ' active' : ''}`}

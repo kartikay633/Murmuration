@@ -8,12 +8,13 @@ import {
   eq,
   getDb,
   gt,
+  isNull,
   pageRole,
   pages,
   sql,
   workspaceRole,
 } from '@murmuration/db'
-import { parseDocName, TREE_PAGES } from '@murmuration/shared'
+import { fragmentText, pageDoc, parseDocName, TREE_PAGES } from '@murmuration/shared'
 import type { Access, Store } from './types'
 
 export const pgAccess: Access = {
@@ -25,6 +26,7 @@ export const pgAccess: Access = {
 
 /** Titles we last wrote to the pages table, per tree doc, so we only write changes. */
 const mirroredTitles = new Map<string, Map<string, string>>()
+const mirroredBodies = new Map<string, string>()
 
 export const pgStore: Store = {
   async load(docName) {
@@ -65,7 +67,15 @@ export const pgStore: Store = {
     if (!parsed) return
     const db = getDb()
     if (parsed.kind === 'page') {
-      await db.update(pages).set({ updatedAt: sql`now()` }).where(eq(pages.id, parsed.id))
+      // Mirror the body's plain text for search, only when it changed.
+      const text = fragmentText(doc.getXmlFragment('default')).slice(0, 200_000)
+      if (mirroredBodies.get(docName) !== text) {
+        await db.update(pages).set({ updatedAt: sql`now()`, bodyText: text }).where(eq(pages.id, parsed.id))
+        mirroredBodies.set(docName, text)
+        if (mirroredBodies.size > 5000) mirroredBodies.delete(mirroredBodies.keys().next().value!)
+      } else {
+        await db.update(pages).set({ updatedAt: sql`now()` }).where(eq(pages.id, parsed.id))
+      }
       return
     }
     // Mirror titles from the tree document into the pages table.
@@ -82,4 +92,31 @@ export const pgStore: Store = {
       known.set(id, title)
     }
   },
+}
+
+/**
+ * Fill in search text for pages written before it was mirrored (or by other
+ * tools). Runs once at startup, a page at a time.
+ */
+export async function backfillSearchText(log: (msg: string) => void = () => {}): Promise<number> {
+  const db = getDb()
+  const rows = await db
+    .select({ id: pages.id })
+    .from(pages)
+    .where(and(eq(pages.bodyText, ''), isNull(pages.archivedAt)))
+    .limit(2000)
+  let filled = 0
+  for (const { id } of rows) {
+    const { updates } = await pgStore.load(pageDoc(id))
+    if (!updates.length) continue
+    const doc = new Y.Doc()
+    for (const u of updates) Y.applyUpdate(doc, u)
+    const text = fragmentText(doc.getXmlFragment('default')).slice(0, 200_000)
+    doc.destroy()
+    if (!text) continue
+    await db.update(pages).set({ bodyText: text }).where(eq(pages.id, id))
+    filled++
+  }
+  if (filled) log(`[sync] indexed ${filled} page(s) for search`)
+  return filled
 }

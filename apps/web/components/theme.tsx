@@ -3,19 +3,29 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './icons'
 
+type Theme = 'light' | 'dark'
+
+export const currentTheme = (): Theme =>
+  typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+
+/** Switch theme everywhere (the toggle and the command palette both use this). */
+export function setTheme(next: Theme) {
+  document.documentElement.dataset.theme = next
+  try {
+    localStorage.setItem('mm-theme', next)
+  } catch {}
+  window.dispatchEvent(new Event('mm:theme'))
+}
+
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark' | null>(null)
+  const [theme, setLocal] = useState<Theme | null>(null)
   useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
+    const sync = () => setLocal(currentTheme())
+    sync()
+    window.addEventListener('mm:theme', sync)
+    return () => window.removeEventListener('mm:theme', sync)
   }, [])
-  const flip = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    document.documentElement.dataset.theme = next
-    try {
-      localStorage.setItem('mm-theme', next)
-    } catch {}
-    setTheme(next)
-  }
+  const flip = () => setTheme(theme === 'dark' ? 'light' : 'dark')
   return (
     <button
       className="icon-btn"

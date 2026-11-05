@@ -2,7 +2,7 @@ import type { Server as HttpServer } from 'node:http'
 import { cleanupGuests, closeDb, EVENTS_CHANNEL, getSql } from '@murmuration/db'
 import type { LiveEvent } from '@murmuration/shared'
 import { redisBus } from './bus'
-import { pgAccess, pgStore } from './pg'
+import { backfillSearchText, pgAccess, pgStore } from './pg'
 import { runPractice } from './practice'
 import { createSyncServer } from './server'
 
@@ -52,6 +52,7 @@ export async function startSync(opts: { port: number; attach?: { server: HttpSer
       .then((n) => n && console.log(`[sync] removed ${n} expired guest account(s)`))
       .catch((e) => console.error('[sync] guest cleanup failed', e))
   void sweep()
+  void backfillSearchText(console.log).catch((e) => console.error('[sync] search backfill failed', e))
   const sweeper = setInterval(sweep, 3600_000)
 
   let stopping = false

@@ -72,12 +72,17 @@ export const pages = pgTable(
     workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
     /** Mirrors the tree document; kept for listing and search. */
     title: text('title').notNull().default(''),
+    /** Plain text of the body, mirrored by the sync server for search. */
+    bodyText: text('body_text').notNull().default(''),
     createdBy: uuid('created_by').notNull().references(() => users.id),
     createdAt: created(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
-  (t) => [index('pages_workspace_idx').on(t.workspaceId)],
+  (t) => [
+    index('pages_workspace_idx').on(t.workspaceId),
+    index('pages_search_idx').using('gin', sql`to_tsvector('simple', ${t.title} || ' ' || ${t.bodyText})`),
+  ],
 )
 
 /** Per-page role overrides. */
