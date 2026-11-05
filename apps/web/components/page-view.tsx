@@ -19,6 +19,7 @@ import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
+import { TemplatePicker } from './template-picker'
 import { useWorkspace } from './workspace'
 
 export function PageView({
@@ -28,7 +29,10 @@ export function PageView({
   focusThread,
   isNew = false,
   follow = null,
+  template = null,
 }: {
+  /** Fill the new page from this template once it loads. */
+  template?: string | null
   isNew?: boolean
   /** Start out following this person (they moved here while we followed them). */
   follow?: string | null
@@ -74,6 +78,7 @@ export function PageView({
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
   const favs = useFavorites(workspace.id)
+  const rename = useCallback((t: string) => tree.rename(pageId, t), [tree, pageId])
   const followMode = useFollow({ pageId, editor, handle: shared?.handle ?? null, scrollEl: scrollRef, initial: follow })
 
   // Coming back online: say what was merged, so the moment is visible.
@@ -99,8 +104,17 @@ export function PageView({
     return () => ro.disconnect()
   }, [])
 
+  // The live title wins over the one rendered on the server (which may be stale,
+  // e.g. a page created empty and then filled from a template).
   useEffect(() => {
-    document.title = `${node?.title || 'Untitled'} · Murmuration`
+    const want = `${node?.title || 'Untitled'} · Murmuration`
+    const apply = () => {
+      if (document.title !== want) document.title = want
+    }
+    apply()
+    const mo = new MutationObserver(apply)
+    mo.observe(document.head, { subtree: true, childList: true, characterData: true })
+    return () => mo.disconnect()
   }, [node?.title])
 
   return (
@@ -205,7 +219,17 @@ export function PageView({
             </p>
           )}
           {shared?.ready ? (
-            <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} activateRef={activateRef} />
+            <>
+              <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} activateRef={activateRef} />
+              <TemplatePicker
+                editor={editor}
+                ready={state.synced}
+                canEdit={canEdit}
+                title={node?.title ?? ''}
+                rename={rename}
+                requested={template}
+              />
+            </>
           ) : (
             <div className="skeleton" aria-label="Loading page">
               <i /> <i /> <i /> <i />

@@ -119,7 +119,7 @@ export function Sidebar() {
   // One page at a time: a second click (or Enter on the focused button) while the first
   // is still being created would otherwise make a duplicate.
   const [creating, startCreating] = useTransition()
-  const newPage = (parentId: string | null) =>
+  const newPage = (parentId: string | null, template?: string) =>
     !creating &&
     startCreating(async () => {
       const res = await createPage(workspace.id)
@@ -127,14 +127,14 @@ export function Sidebar() {
       tree.add({ id: res.id, title: '', parentId, createdBy: user.id })
       if (parentId) updateExpanded((s) => s.add(parentId))
       setNavOpen(false)
-      router.push(`/w/${workspace.id}/p/${res.id}?new=1`)
+      router.push(`/w/${workspace.id}/p/${res.id}${template ? `?template=${template}` : '?new=1'}`)
     })
 
   // "New page" from the command palette.
   const newPageRef = useRef(newPage)
   newPageRef.current = newPage
   useEffect(() => {
-    const on = () => newPageRef.current(null)
+    const on = (e: Event) => newPageRef.current(null, (e as CustomEvent<{ template?: string } | undefined>).detail?.template)
     window.addEventListener('mm:new-page', on)
     return () => window.removeEventListener('mm:new-page', on)
   }, [])

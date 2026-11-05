@@ -413,6 +413,12 @@ kbd {
 .follow-pill .icon-btn { color: inherit; }
 .follow-pill .icon-btn:hover { background: color-mix(in srgb, var(--paper) 16%, transparent); }
 
+/* Templates on an empty page */
+.tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 20px; font: 13px var(--font-sans), sans-serif; animation: fade .2s var(--ease); }
+.tpl-label { color: var(--ink-3); margin-right: 4px; }
+.tpl-chip { height: 30px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink-2); font: inherit; cursor: pointer; }
+.tpl-chip:hover { border-color: var(--ink-4); color: var(--ink); background: var(--raised); }
+
 /* Favorites */
 .fav-list { list-style: none; margin: 0 0 6px; padding: 0; }
 .fav-list .i { color: var(--ink-3); }

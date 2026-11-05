@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { isInTrash } from '@murmuration/shared'
 import { recentPages } from '@/app/favorite-actions'
 import { searchPages, type SearchHit } from '@/app/search-actions'
+import { TEMPLATES } from '@/lib/templates'
 import { useTree } from '@/lib/tree'
 import { Icon, type IconName } from './icons'
 import { currentTheme, setTheme } from './theme'
@@ -152,6 +153,12 @@ export function CommandPalette() {
     const dark = currentTheme() === 'dark'
     const actions: Row[] = [
       { key: 'a:new', icon: 'plus' as const, label: 'New page', run: () => (setOpen(false), window.dispatchEvent(new Event('mm:new-page'))) },
+      ...TEMPLATES.map((t) => ({
+        key: `t:${t.id}`,
+        icon: 'page' as const,
+        label: `New ${t.name.toLowerCase()} page`,
+        run: () => (setOpen(false), window.dispatchEvent(new CustomEvent('mm:new-page', { detail: { template: t.id } }))),
+      })),
       { key: 'a:inbox', icon: 'inbox' as const, label: 'Open inbox', run: () => go(`/w/${workspace.id}/inbox`) },
       {
         key: 'a:theme',
@@ -162,7 +169,9 @@ export function CommandPalette() {
       ...workspaces
         .filter((w) => w.id !== workspace.id)
         .map((w) => ({ key: `w:${w.id}`, icon: 'layers' as const, label: `Switch to ${w.name}`, run: () => go(`/w/${w.id}`) })),
-    ].filter((a) => !q || a.label.toLowerCase().includes(q))
+    ]
+      // Template shortcuts appear once you type, so the empty palette stays short.
+      .filter((a) => (q ? a.label.toLowerCase().includes(q) : !a.key.startsWith('t:')))
     return { pageRows, actions, all: [...pageRows, ...actions] }
   }, [open, hits, query, tree.nodes, pathOf, go, workspace.id, workspaces, close])
 
