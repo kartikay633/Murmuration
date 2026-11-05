@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
-import { ancestors, can, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
+import { ancestors, can, subtree, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
 import { archivePage, createPage, createWorkspace, logout, unarchivePage } from '@/app/actions'
 import { useUnread } from '@/lib/comments'
 import { clearLocalDocs } from '@/lib/sync'
@@ -13,6 +13,7 @@ import { Avatar } from './avatar'
 import { Icon } from './icons'
 import { useDismiss } from './menu'
 import { ThemeToggle } from './theme'
+import { TrashButton } from './trash'
 import { useWorkspace } from './workspace'
 
 
@@ -137,14 +138,16 @@ export function Sidebar() {
 
   const archive = (node: TreeNode) =>
     startTransition(async () => {
-      const res = await archivePage(node.id)
+      // Subpages go to the trash with their parent; pages already archived on their own stay put.
+      const below = subtree(tree.nodes.values(), node.id, true).slice(1)
+      const res = await archivePage(node.id, below)
       if (res.error) return toast(res.error)
       tree.archive(node.id)
       toast(`Archived “${node.title || 'Untitled'}”.`, {
         label: 'Undo',
         run: () =>
           startTransition(async () => {
-            const back = await unarchivePage(node.id)
+            const back = await unarchivePage(node.id, below)
             if (back.error) return toast(back.error)
             tree.unarchive(node.id)
           }),
@@ -223,6 +226,7 @@ export function Sidebar() {
           )}
           </DragContext.Provider>
         )}
+        <TrashButton />
       </nav>
       <div className="side-foot">
         <Avatar name={user.name} ink={user.ink} size="lg" />

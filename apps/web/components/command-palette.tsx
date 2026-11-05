@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { isInTrash } from '@murmuration/shared'
 import { searchPages, type SearchHit } from '@/app/search-actions'
 import { useTree } from '@/lib/tree'
 import { Icon, type IconName } from './icons'
@@ -131,7 +132,7 @@ export function CommandPalette() {
     if (!open) return { pageRows: [], actions: [], all: [] }
     const q = query.trim().toLowerCase()
     const pageRows: Row[] = (hits ?? [])
-      .filter((h) => !tree.nodes.get(h.id)?.archived)
+      .filter((h) => !isInTrash(tree.nodes, h.id))
       .map((h) => ({
         key: `p:${h.id}`,
         icon: 'page' as const,

@@ -17,12 +17,56 @@ export interface TreeNode {
   createdAt: number
   createdBy: string
   archived: boolean
+  /** When it was archived (ms), for the trash. */
+  archivedAt?: number | null
 }
 
 export const TREE_PAGES = 'pages'
 
+/**
+ * True if the page or anything above it is archived: archiving a page puts its
+ * whole subtree in the trash, and restoring it brings the subtree back.
+ */
+export function isInTrash(all: Map<string, TreeNode>, id: string): boolean {
+  const seen = new Set<string>()
+  let cur: string | null = id
+  while (cur && !seen.has(cur)) {
+    seen.add(cur)
+    const n = all.get(cur)
+    if (!n) return false
+    if (n.archived) return true
+    cur = n.parentId
+  }
+  return false
+}
+
+/**
+ * A page and every page below it (in the full tree, archived or not). With
+ * `skipArchived`, branches that were archived on their own are left out, which
+ * is what restoring a parent should bring back.
+ */
+export function subtree(nodes: Iterable<TreeNode>, id: string, skipArchived = false): string[] {
+  const kids = new Map<string, string[]>()
+  for (const n of nodes) {
+    if (!n.parentId || (skipArchived && n.archived)) continue
+    kids.set(n.parentId, [...(kids.get(n.parentId) ?? []), n.id])
+  }
+  const out: string[] = []
+  const stack = [id]
+  const seen = new Set<string>()
+  while (stack.length) {
+    const cur = stack.pop()!
+    if (seen.has(cur)) continue
+    seen.add(cur)
+    out.push(cur)
+    stack.push(...(kids.get(cur) ?? []))
+  }
+  return out
+}
+
 export function buildTree(nodes: TreeNode[]): Map<string | null, TreeNode[]> {
-  const live = new Map(nodes.filter((n) => !n.archived).map((n) => [n.id, n]))
+  const all = new Map(nodes.map((n) => [n.id, n]))
+  const live = new Map(nodes.filter((n) => !isInTrash(all, n.id)).map((n) => [n.id, n]))
 
   const effectiveParent = (n: TreeNode): string | null => {
     if (!n.parentId || !live.has(n.parentId)) return null

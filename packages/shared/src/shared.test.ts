@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTree, can, effectiveRole, keyBetween, parseDocName, type TreeNode } from './index'
+import { buildTree, isInTrash, subtree, can, effectiveRole, keyBetween, parseDocName, type TreeNode } from './index'
 
 const node = (id: string, parentId: string | null, position = 'm'): TreeNode => ({
   id, parentId, position, title: id, icon: null, createdAt: 0, createdBy: 'u', archived: false,
@@ -70,14 +70,33 @@ describe('buildTree', () => {
     expect(t.get('a')?.map((n) => n.id)).toEqual(['c'])
   })
 
-  it('puts children of archived pages at the root', () => {
+  it('keeps children of archived pages in the trash with them', () => {
     const parent = { ...node('p', null), archived: true }
     const t = buildTree([parent, node('c', 'p')])
+    expect(t.get(null)).toBeUndefined()
+  })
+
+  it('shows pages whose parent no longer exists at the root', () => {
+    const t = buildTree([node('c', 'gone')])
     expect(t.get(null)?.map((n) => n.id)).toEqual(['c'])
   })
 
   it('orders siblings by position', () => {
     const t = buildTree([node('b', null, 'n'), node('a', null, 'c')])
     expect(t.get(null)?.map((n) => n.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('trash', () => {
+  it('archiving a page hides its whole subtree, not just the page', () => {
+    const nodes = [node('a', null, 'a'), node('b', 'a'), node('c', 'b'), node('d', null, 'b')]
+    nodes[0]!.archived = true
+    const tree = buildTree(nodes)
+    expect((tree.get(null) ?? []).map((n) => n.id)).toEqual(['d'])
+    expect(tree.get('a')).toBeUndefined()
+    const all = new Map(nodes.map((n) => [n.id, n]))
+    expect(isInTrash(all, 'c')).toBe(true)
+    expect(isInTrash(all, 'd')).toBe(false)
+    expect(subtree(nodes, 'a').sort()).toEqual(['a', 'b', 'c'])
   })
 })

@@ -26,6 +26,8 @@ interface TreeApi {
   rename(id: string, title: string): void
   archive(id: string): void
   unarchive(id: string): void
+  /** Remove pages from the tree for good (after they were deleted on the server). */
+  purge(ids: string[]): void
   /** Move a page relative to another (or to the top level). Returns false if the move isn't allowed. */
   move(id: string, target: string | null, place: DropPlace): boolean
   canMove(id: string, target: string, place: DropPlace): boolean
@@ -54,6 +56,7 @@ function readNodes(map: Y.Map<Y.Map<unknown>>, log: Y.Array<MoveOp>): Map<string
       createdAt: Number(m.get('createdAt') ?? 0),
       createdBy: String(m.get('createdBy') ?? ''),
       archived: Boolean(m.get('archived')),
+      archivedAt: (m.get('archivedAt') as number | null) ?? null,
     })
   })
   return out
@@ -157,10 +160,25 @@ export function TreeProvider({ workspaceId, children }: { workspaceId: string; c
         if (n && n.get('title') !== title) n.set('title', title)
       },
       archive(id) {
-        map()?.get(id)?.set('archived', true)
+        const n = map()?.get(id)
+        if (!n || !shared) return
+        shared.doc.transact(() => {
+          n.set('archived', true)
+          n.set('archivedAt', Date.now())
+        })
       },
       unarchive(id) {
-        map()?.get(id)?.set('archived', false)
+        const n = map()?.get(id)
+        if (!n || !shared) return
+        shared.doc.transact(() => {
+          n.set('archived', false)
+          n.set('archivedAt', null)
+        })
+      },
+      purge(ids) {
+        const m = map()
+        if (!m || !shared) return
+        shared.doc.transact(() => ids.forEach((id) => m.delete(id)))
       },
       canMove,
       move(id, over, place) {

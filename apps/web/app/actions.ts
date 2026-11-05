@@ -15,6 +15,8 @@ import {
   docSnapshots,
   eq,
   gt,
+  inArray,
+  isNull,
   getDb,
   memberships,
   pageRole,
@@ -218,21 +220,63 @@ export async function duplicatePage(pageId: string): Promise<{ id?: string; titl
   return { id: row!.id, title }
 }
 
-export async function archivePage(pageId: string): Promise<{ error?: string }> {
+/** Subpage ids that really are in the same workspace (the tree is client-supplied). */
+async function sameWorkspace(workspaceId: string, ids: string[]): Promise<string[]> {
+  const clean = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 500)
+  if (!clean.length) return []
+  const rows = await getDb()
+    .select({ id: pages.id })
+    .from(pages)
+    .where(and(eq(pages.workspaceId, workspaceId), inArray(pages.id, clean)))
+  return rows.map((r) => r.id)
+}
+
+/** Archive a page and the pages under it (they go to the trash together). */
+export async function archivePage(pageId: string, subpageIds: string[] = []): Promise<{ error?: string }> {
   const user = await requireUser()
   const access = await pageRole(user.id, pageId)
   if (!access || !can(await workspaceRole(user.id, access.workspaceId), 'manage-pages')) {
     return { error: 'You can’t archive this page.' }
   }
-  await getDb().update(pages).set({ archivedAt: new Date() }).where(eq(pages.id, pageId))
+  const ids = [pageId, ...(await sameWorkspace(access.workspaceId, subpageIds))]
+  await getDb()
+    .update(pages)
+    .set({ archivedAt: new Date() })
+    .where(and(inArray(pages.id, ids), isNull(pages.archivedAt)))
   return {}
 }
 
-export async function unarchivePage(pageId: string): Promise<{ error?: string }> {
+export async function unarchivePage(pageId: string, subpageIds: string[] = []): Promise<{ error?: string }> {
   const user = await requireUser()
   const [page] = await getDb().select({ workspaceId: pages.workspaceId }).from(pages).where(eq(pages.id, pageId))
   if (!page || !can(await workspaceRole(user.id, page.workspaceId), 'manage-pages')) return { error: 'You can’t restore this page.' }
-  await getDb().update(pages).set({ archivedAt: null }).where(eq(pages.id, pageId))
+  const ids = [pageId, ...(await sameWorkspace(page.workspaceId, subpageIds))]
+  await getDb().update(pages).set({ archivedAt: null }).where(inArray(pages.id, ids))
+  return {}
+}
+
+/**
+ * Delete archived pages for good: the rows (comments and access cascade) and
+ * their whole edit history. `ids` is the archived page plus its subpages.
+ */
+export async function deletePagesForever(workspaceId: string, ids: string[]): Promise<{ error?: string }> {
+  const user = await requireUser()
+  if (!can(await workspaceRole(user.id, workspaceId), 'manage-pages')) return { error: 'You can’t delete pages here.' }
+  const unique = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 500)
+  if (!unique.length) return {}
+  const db = getDb()
+  const rows = await db
+    .select({ id: pages.id, archivedAt: pages.archivedAt })
+    .from(pages)
+    .where(and(eq(pages.workspaceId, workspaceId), inArray(pages.id, unique)))
+  // The page being deleted must already be in the trash.
+  if (!rows.some((r) => r.archivedAt) || rows.length !== unique.length) return { error: 'Only pages in the trash can be deleted.' }
+  const docNames = unique.map(pageDoc)
+  await db.transaction(async (tx) => {
+    await tx.delete(docEvents).where(inArray(docEvents.docName, docNames))
+    await tx.delete(docSnapshots).where(inArray(docSnapshots.docName, docNames))
+    await tx.delete(pages).where(inArray(pages.id, unique))
+  })
   return {}
 }
 

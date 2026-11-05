@@ -85,6 +85,9 @@ a { color: inherit; text-decoration: none; }
 .btn.primary:hover { opacity: .9; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
 .btn.ghost:hover { background: var(--paper-3); color: var(--ink); }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger:hover { opacity: .9; }
 .btn.block { width: 100%; height: 40px; font-size: 14px; }
 .icon-btn {
   width: 30px; height: 30px; display: grid; place-items: center; border: 0; background: none;
@@ -381,6 +384,27 @@ kbd {
 .mention-menu li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
 .mention-menu li[aria-selected="true"] { background: var(--paper-3); }
 
+
+/* Trash */
+.trash-wrap { position: relative; margin-top: 10px; }
+.trash-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.trash-panel {
+  position: absolute; left: 4px; bottom: calc(100% + 6px); z-index: 40; width: 320px; max-height: 380px; overflow-y: auto; padding: 6px;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); animation: pop .12s var(--ease);
+}
+.trash-filter { width: 100%; height: 32px; margin-bottom: 4px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 7px; background: var(--paper); color: var(--ink); font: 13px var(--font-sans), sans-serif; outline: 0; }
+.trash-filter:focus { border-color: var(--ink-4); }
+.trash-empty { margin: 0; padding: 10px; color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+.trash-list { list-style: none; margin: 0; padding: 0; }
+.trash-row { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-radius: 7px; }
+.trash-row:hover { background: var(--paper-3); }
+.trash-open { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.trash-title { font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trash-meta { font-size: 12px; color: var(--ink-3); }
+.trash-actions, .trash-confirm { display: flex; align-items: center; gap: 2px; flex: none; }
+.trash-actions { opacity: 0; transition: opacity .12s; }
+.trash-row:hover .trash-actions, .trash-row:focus-within .trash-actions { opacity: 1; }
+@media (hover: none) { .trash-actions { opacity: 1; } }
 
 /* Menu footer (page stats) */
 .menu-foot { margin: 4px -4px -4px; padding: 8px 12px; border-top: 1px solid var(--rule); color: var(--ink-3); font: 12px var(--font-sans), sans-serif; }
