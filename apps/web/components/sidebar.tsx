@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useUnread } from '@/lib/comments'
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
 import { ancestors, can, presenceUser, readPresenceUser, type PresenceUser, type TreeNode } from '@murmuration/shared'
 import { archivePage, createPage, createWorkspace, logout } from '@/app/actions'
@@ -98,6 +99,8 @@ export function Sidebar() {
   const presence = usePagePresence()
   const [expanded, updateExpanded] = useExpanded(workspace.id)
   const [, startTransition] = useTransition()
+  const pathname = usePathname()
+  const unread = useUnread(workspace.id, [pathname])
 
   // Keep the open page visible in the tree.
   useEffect(() => {
@@ -133,6 +136,16 @@ export function Sidebar() {
     <aside className="sidebar" aria-label="Workspace navigation">
       <WorkspaceSwitcher />
       <nav className="nav">
+        <Link
+          href={`/w/${workspace.id}/inbox`}
+          className={`item${pathname.endsWith('/inbox') ? ' active' : ''}`}
+          style={{ paddingLeft: 8, gap: 8 }}
+          onClick={() => setNavOpen(false)}
+        >
+          <Icon name="inbox" />
+          <span className="label">Inbox</span>
+          {unread > 0 && <span className="badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
+        </Link>
         <div className="nav-label">
           Pages
           {canManage && (

@@ -13,6 +13,8 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 - **Offline editing.** Pages are cached in IndexedDB. Edits made offline are sent when the connection returns and merge with everyone else's.
 - **Exact save state.** The header says *Saved* only once the server has stored every edit you've made.
 - **Per-person undo.** Ctrl+Z only undoes your own changes.
+- **Comments pinned to text.** Select any passage to start a thread. The anchor is a pair of Yjs relative positions, so a comment stays on its words while other people type above, inside or around them; if the words are deleted, the thread says so and keeps the original quote.
+- **@mentions and an inbox.** Mentions and replies notify people instantly, with an unread badge in the sidebar. Opening one jumps straight to the thread.
 - **Practice collaborators**: a script that joins a page as a seeded user and types, so you can see real-time editing with one browser.
 
 ## Architecture
@@ -30,6 +32,7 @@ Browser (Next.js, React, Tiptap)          Sync server (Node, ws)                
 - **Event log, not overwrites.** Every update is appended with its author. A document loads as *latest snapshot + events after it*. This log is the base for page history and time travel.
 - **Precise acknowledgements.** Client and server both count the edit frames a client sends for a document; `SAVED(n)` means frames 1..n are stored.
 - **Presence can't be spoofed.** A connection may only update awareness entries for client ids it introduced.
+- **Postgres changes reach browsers live.** Comments and notifications live in Postgres. The web app publishes a `NOTIFY` after each change; sync servers `LISTEN` and forward it to the sockets that care (everyone on that page, or one person's tabs). No polling.
 
 | Package | What it is |
 |---|---|
@@ -72,6 +75,8 @@ The sync-server tests run real clients against a real server over WebSockets and
 - a document is rebuilt correctly from the event log after a restart
 - a role change applies to an open connection without reconnecting
 - presence updates claiming someone else's client id are refused
+- out-of-band events reach everyone on a page, and inbox events reach only the right person
+- closing a document stops its presence timer (no leaks as you move between pages)
 - a bad token closes the socket
 
 ## Roadmap
@@ -79,7 +84,7 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Design system and prototype ([blueprint](docs/BLUEPRINT.md), [prototype](docs/prototype/index.html))
 - [x] Accounts, workspaces, page tree, roles
 - [x] Real-time core: sync server, persistence, presence, server-side permissions
-- [ ] Comments anchored to text, mentions, notifications
+- [x] Comments anchored to text, mentions, notifications
 - [ ] Page history: time travel, restore, blame view
 - [ ] Network Lab (latency, packet loss, partitions), practice collaborators in the UI
 - [ ] Page-tree CRDT for concurrent moves

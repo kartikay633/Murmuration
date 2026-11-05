@@ -7,13 +7,25 @@ import { ancestors, can, pageDoc, readPresenceUser, ROLE_LABEL, type PresenceUse
 import type { DocHandle } from '@murmuration/client'
 import { useConnectionStatus, useDocState, useSharedDoc } from '@/lib/sync'
 import { useTree, useTreeRole } from '@/lib/tree'
+import { useThreads } from '@/lib/comments'
 import { Avatar } from './avatar'
+import { CommentLayer } from './comments'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
 import { useWorkspace } from './workspace'
 
-export function PageView({ pageId, initialRole, overrides }: { pageId: string; initialRole: Role; overrides: Record<string, Role> }) {
+export function PageView({
+  pageId,
+  initialRole,
+  overrides,
+  focusThread,
+}: {
+  pageId: string
+  initialRole: Role
+  overrides: Record<string, Role>
+  focusThread: string | null
+}) {
   const { user, workspace, setNavOpen } = useWorkspace()
   const tree = useTree()
   const shared = useSharedDoc(pageDoc(pageId))
@@ -24,8 +36,22 @@ export function PageView({ pageId, initialRole, overrides }: { pageId: string; i
   const canRename = can(treeRole ?? workspace.role, 'manage-pages')
   const node = tree.nodes.get(pageId)
   const trail = useMemo(() => ancestors(tree.nodes, pageId), [tree.nodes, pageId])
-  const editorRef = useRef<TiptapEditor | null>(null)
-  const onReady = useCallback((e: TiptapEditor) => (editorRef.current = e), [])
+  const [editor, setEditor] = useState<TiptapEditor | null>(null)
+  const onReady = useCallback((e: TiptapEditor) => setEditor(e), [])
+  const { threads, refresh } = useThreads(pageId)
+  const activateRef = useRef<((id: string) => void) | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [stacked, setStacked] = useState(false)
+
+  // Comments sit in a margin beside the text when there's room, and below it otherwise.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setStacked((e?.contentRect.width ?? 0) < 1080))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     document.title = `${node?.title || 'Untitled'} · Murmuration`
@@ -54,7 +80,8 @@ export function PageView({ pageId, initialRole, overrides }: { pageId: string; i
         <SharePopover pageId={pageId} overrides={overrides} />
       </header>
 
-      <div className="scroll">
+      <div className="scroll" ref={scrollRef}>
+        <div className={`page-wrap${stacked ? ' stacked' : ''}`} ref={wrapRef}>
         <article className="page">
           <div className="page-meta eyebrow">
             <span>{workspace.name}</span>
@@ -64,7 +91,7 @@ export function PageView({ pageId, initialRole, overrides }: { pageId: string; i
             value={node?.title ?? ''}
             editable={canRename}
             onChange={(t) => tree.rename(pageId, t)}
-            onEnter={() => editorRef.current?.commands.focus('start')}
+            onEnter={() => editor?.commands.focus('start')}
           />
           <hr className="page-rule" />
           {!canEdit && (
@@ -81,13 +108,25 @@ export function PageView({ pageId, initialRole, overrides }: { pageId: string; i
             </p>
           )}
           {shared?.ready ? (
-            <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} />
+            <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} activateRef={activateRef} />
           ) : (
             <div className="skeleton" aria-label="Loading page">
               <i /> <i /> <i /> <i />
             </div>
           )}
         </article>
+        <CommentLayer
+          editor={editor}
+          pageId={pageId}
+          role={role}
+          threads={threads}
+          refresh={refresh}
+          focusThread={focusThread}
+          wrapRef={wrapRef}
+          stacked={stacked}
+          activateRef={activateRef}
+        />
+        </div>
       </div>
     </>
   )

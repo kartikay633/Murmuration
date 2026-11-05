@@ -40,7 +40,8 @@ const fragment = doc.getXmlFragment('default')
 const paragraph = new Y.XmlElement('paragraph')
 const line = new Y.XmlText()
 paragraph.insert(0, [line])
-fragment.insert(fragment.length, [paragraph])
+// BOT_AT=start types at the top of the page instead of the bottom.
+fragment.insert(process.env.BOT_AT === 'start' ? 0 : fragment.length, [paragraph])
 
 const cursorAt = (i: number) => {
   const pos = Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(line, i))

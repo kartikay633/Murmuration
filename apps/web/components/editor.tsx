@@ -10,6 +10,7 @@ import type * as Y from 'yjs'
 import type { DocHandle } from '@murmuration/client'
 import { presenceUser, readPresenceUser } from '@murmuration/shared'
 import type { CurrentUser } from '@/lib/auth'
+import { CommentAnchors } from '@/lib/comment-anchors'
 
 // Presence comes from other people's browsers, so treat it as untrusted:
 // only a known ink name ever reaches a style.
@@ -32,12 +33,15 @@ export function Editor({
   user,
   editable,
   onReady,
+  activateRef,
 }: {
   doc: Y.Doc
   handle: DocHandle
   user: CurrentUser
   editable: boolean
   onReady?: (editor: TiptapEditor) => void
+  /** Called with a thread id when someone clicks highlighted text. */
+  activateRef?: React.RefObject<((id: string) => void) | null>
 }) {
   const editor = useEditor(
     {
@@ -49,6 +53,7 @@ export function Editor({
         StarterKit.configure({ undoRedo: false, heading: { levels: [1, 2, 3] } }),
         Placeholder.configure({ placeholder: 'Start writing…' }),
         Collaboration.configure({ document: doc }),
+        CommentAnchors.configure({ onActivate: (id) => activateRef?.current?.(id) }),
         CollaborationCaret.configure({
           provider: handle,
           user: presenceUser(user),

@@ -16,11 +16,26 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: row?.title || 'Untitled' }
 }
 
-export default async function PageRoute({ params }: { params: Params }) {
+export default async function PageRoute({
+  params,
+  searchParams,
+}: {
+  params: Params
+  searchParams: Promise<{ thread?: string }>
+}) {
   const { workspaceId, pageId } = await params
+  const { thread } = await searchParams
   if (!UUID.test(pageId)) notFound()
   const user = await requireUser()
   const access = await pageRole(user.id, pageId)
   if (!access?.role || access.workspaceId !== workspaceId) notFound()
-  return <PageView key={pageId} pageId={pageId} initialRole={access.role} overrides={await pageOverrides(pageId)} />
+  return (
+    <PageView
+      key={pageId}
+      pageId={pageId}
+      initialRole={access.role}
+      overrides={await pageOverrides(pageId)}
+      focusThread={thread && UUID.test(thread) ? thread : null}
+    />
+  )
 }

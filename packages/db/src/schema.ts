@@ -128,6 +128,60 @@ export const activity = pgTable(
   (t) => [index('activity_workspace_idx').on(t.workspaceId, t.id)],
 )
 
+/**
+ * A conversation pinned to a stretch of a page. The anchor is a pair of Yjs
+ * relative positions (base64), so it follows the text through everyone's edits
+ * instead of pointing at a fixed character offset.
+ */
+export const commentThreads = pgTable(
+  'comment_threads',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    anchorStart: text('anchor_start').notNull(),
+    anchorEnd: text('anchor_end').notNull(),
+    /** The text as it was when the thread started, shown if the anchor is later deleted. */
+    quote: text('quote').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: created(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (t) => [index('comment_threads_page_idx').on(t.pageId)],
+)
+
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id').notNull().references(() => commentThreads.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Plain text; mentions are stored as <@user-uuid>. */
+    body: text('body').notNull(),
+    createdAt: created(),
+    editedAt: timestamp('edited_at', { withTimezone: true }),
+  },
+  (t) => [index('comments_thread_idx').on(t.threadId, t.createdAt)],
+)
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    threadId: uuid('thread_id').notNull().references(() => commentThreads.id, { onDelete: 'cascade' }),
+    commentId: uuid('comment_id').notNull().references(() => comments.id, { onDelete: 'cascade' }),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    kind: text('kind').$type<'mention' | 'reply'>().notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: created(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect
