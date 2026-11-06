@@ -243,6 +243,23 @@ export const pageLinks = pgTable(
   (t) => [primaryKey({ columns: [t.fromPageId, t.toPageId] }), index('page_links_to_idx').on(t.toPageId)],
 )
 
+/** "Remind me about this page": shows up in the inbox once due. */
+export const reminders = pgTable(
+  'reminders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+    /** When the sync server told the person's open tabs about it. */
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: created(),
+  },
+  (t) => [index('reminders_user_idx').on(t.userId, t.dueAt), index('reminders_due_idx').on(t.dueAt)],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect

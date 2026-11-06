@@ -23,7 +23,7 @@ export function InboxView({ items }: { items: InboxItem[] }) {
   const open = (item: InboxItem) =>
     startTransition(async () => {
       if (!item.read) await markRead(workspace.id, [item.id])
-      router.push(`/w/${workspace.id}/p/${item.pageId}?thread=${item.threadId}`)
+      router.push(`/w/${workspace.id}/p/${item.pageId}${item.threadId ? `?thread=${item.threadId}` : ''}`)
     })
 
   return (
@@ -63,11 +63,22 @@ export function InboxView({ items }: { items: InboxItem[] }) {
               <p>
                 <b>You’re all caught up.</b>
                 <br />
-                Mentions and replies to your comments will appear here.
+                Mentions, replies to your comments and your reminders will appear here.
               </p>
             </div>
           ) : (
-            items.map((item) => (
+            items.map((item) =>
+              item.kind === 'reminder' ? (
+                <button key={item.id} type="button" className={`note reminder${item.read ? '' : ' unread'}`} onClick={() => open(item)}>
+                  <span className="note-icon" aria-hidden="true">
+                    <Icon name="bell" />
+                  </span>
+                  <span className="what">
+                    Reminder: <b>{item.pageTitle}</b>
+                  </span>
+                  <time dateTime={item.createdAt}>{timeAgo(item.createdAt)}</time>
+                </button>
+              ) : (
               <button key={item.id} type="button" className={`note${item.read ? '' : ' unread'}`} onClick={() => open(item)}>
                 <Avatar name={item.actorName} ink={item.actorInk} size="md" />
                 <span className="what">
@@ -87,7 +98,8 @@ export function InboxView({ items }: { items: InboxItem[] }) {
                   )}
                 </span>
               </button>
-            ))
+              ),
+            )
           )}
         </div>
       </div>

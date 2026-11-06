@@ -13,7 +13,9 @@ import {
   notifications,
   pageRole,
   pages,
+  lte,
   publish,
+  reminders,
   sql,
   users,
   workspaceRole,
@@ -266,7 +268,7 @@ export async function deleteComment(commentId: string): Promise<Result> {
 
 export interface InboxItem {
   id: string
-  kind: 'mention' | 'reply'
+  kind: 'mention' | 'reply' | 'reminder'
   read: boolean
   createdAt: string
   actorName: string
@@ -302,19 +304,42 @@ export async function listInbox(workspaceId: string): Promise<InboxItem[]> {
     .where(and(eq(notifications.userId, user.id), eq(notifications.workspaceId, workspaceId)))
     .orderBy(desc(notifications.createdAt))
     .limit(60)
-  return rows.map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    read: !!r.readAt,
-    createdAt: r.createdAt.toISOString(),
-    actorName: r.actorName ?? 'Someone',
-    actorInk: isInk(r.actorInk) ? r.actorInk : 'ochre',
-    pageId: r.pageId,
-    pageTitle: r.pageTitle || 'Untitled',
-    threadId: r.threadId,
-    quote: r.quote,
-    body: r.body,
-  }))
+  const due = await getDb()
+    .select({ id: reminders.id, dueAt: reminders.dueAt, readAt: reminders.readAt, pageId: pages.id, pageTitle: pages.title })
+    .from(reminders)
+    .innerJoin(pages, and(eq(pages.id, reminders.pageId), isNull(pages.archivedAt)))
+    .where(and(eq(reminders.userId, user.id), eq(reminders.workspaceId, workspaceId), lte(reminders.dueAt, new Date())))
+    .orderBy(desc(reminders.dueAt))
+    .limit(30)
+  const items: InboxItem[] = [
+    ...rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      read: !!r.readAt,
+      createdAt: r.createdAt.toISOString(),
+      actorName: r.actorName ?? 'Someone',
+      actorInk: isInk(r.actorInk) ? r.actorInk : ('ochre' as Ink),
+      pageId: r.pageId,
+      pageTitle: r.pageTitle || 'Untitled',
+      threadId: r.threadId,
+      quote: r.quote,
+      body: r.body,
+    })),
+    ...due.map((r) => ({
+      id: r.id,
+      kind: 'reminder' as const,
+      read: !!r.readAt,
+      createdAt: r.dueAt.toISOString(),
+      actorName: user.name,
+      actorInk: user.ink,
+      pageId: r.pageId,
+      pageTitle: r.pageTitle || 'Untitled',
+      threadId: '',
+      quote: '',
+      body: '',
+    })),
+  ]
+  return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export async function unreadCount(workspaceId: string): Promise<number> {
@@ -323,7 +348,18 @@ export async function unreadCount(workspaceId: string): Promise<number> {
     .select({ n: sql<number>`count(*)::int` })
     .from(notifications)
     .where(and(eq(notifications.userId, user.id), eq(notifications.workspaceId, workspaceId), isNull(notifications.readAt)))
-  return row?.n ?? 0
+  const [rem] = await getDb()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(reminders)
+    .where(
+      and(
+        eq(reminders.userId, user.id),
+        eq(reminders.workspaceId, workspaceId),
+        isNull(reminders.readAt),
+        lte(reminders.dueAt, new Date()),
+      ),
+    )
+  return (row?.n ?? 0) + (rem?.n ?? 0)
 }
 
 /** Mark some (or, with no ids, all) of my notifications in a workspace as read. */
@@ -332,6 +368,9 @@ export async function markRead(workspaceId: string, ids?: string[]): Promise<voi
   const where = [eq(notifications.userId, user.id), eq(notifications.workspaceId, workspaceId), isNull(notifications.readAt)]
   if (ids?.length) where.push(inArray(notifications.id, ids.slice(0, 200)))
   await getDb().update(notifications).set({ readAt: new Date() }).where(and(...where))
+  const rem = [eq(reminders.userId, user.id), eq(reminders.workspaceId, workspaceId), isNull(reminders.readAt), lte(reminders.dueAt, new Date())]
+  if (ids?.length) rem.push(inArray(reminders.id, ids.slice(0, 200)))
+  await getDb().update(reminders).set({ readAt: new Date() }).where(and(...rem))
   await publish({ kind: 'inbox', userIds: [user.id] })
 }
 

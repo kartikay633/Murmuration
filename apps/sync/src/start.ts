@@ -1,5 +1,5 @@
 import type { Server as HttpServer } from 'node:http'
-import { cleanupGuests, closeDb, EVENTS_CHANNEL, getSql } from '@murmuration/db'
+import { claimDueReminders, cleanupGuests, closeDb, EVENTS_CHANNEL, getSql, publish } from '@murmuration/db'
 import type { LiveEvent } from '@murmuration/shared'
 import { redisBus } from './bus'
 import { backfillSearchText, pgAccess, pgStore } from './pg'
@@ -55,12 +55,21 @@ export async function startSync(opts: { port: number; attach?: { server: HttpSer
   void backfillSearchText(console.log).catch((e) => console.error('[sync] search backfill failed', e))
   const sweeper = setInterval(sweep, 3600_000)
 
+  // Reminders that came due: nudge the owners' open tabs so the inbox updates.
+  // Claiming is atomic, so with several sync servers each reminder fires once.
+  const remind = () =>
+    claimDueReminders()
+      .then((userIds) => (userIds.length ? publish({ kind: 'inbox', userIds }) : undefined))
+      .catch((e) => console.error('[sync] reminder sweep failed', e))
+  const reminderTimer = setInterval(remind, 30_000)
+
   let stopping = false
   const shutdown = async () => {
     if (stopping) return
     stopping = true
     console.log('[sync] flushing documents and shutting down…')
     clearInterval(sweeper)
+    clearInterval(reminderTimer)
     await server.close()
     await bus?.close?.()
     await closeDb()

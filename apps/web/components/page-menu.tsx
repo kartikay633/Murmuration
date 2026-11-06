@@ -9,6 +9,7 @@ import { duplicatePage } from '@/app/actions'
 import { useTree } from '@/lib/tree'
 import { Icon } from './icons'
 import { useDismiss } from './menu'
+import { RemindMenu } from './remind'
 import { useWorkspace } from './workspace'
 
 /** A filename that works everywhere. */
@@ -50,8 +51,12 @@ export function PageMenu({
   const tree = useTree()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [remind, setRemind] = useState(false)
   const [busy, start] = useTransition()
-  const close = useCallback(() => setOpen(false), [])
+  const close = useCallback(() => {
+    setOpen(false)
+    setRemind(false)
+  }, [])
   const ref = useDismiss(open, close)
   const run = (fn: () => void) => () => {
     close()
@@ -121,6 +126,11 @@ export function PageMenu({
           <button className="menu-item" role="menuitem" type="button" onClick={run(onBlame)}>
             <Icon name="blame" /> Show who wrote what
           </button>
+          <button className="menu-item" role="menuitem" type="button" aria-expanded={remind} onClick={() => setRemind((r) => !r)}>
+            <Icon name="bell" /> Remind me
+            <Icon name="chev" className={`menu-chev${remind ? ' open' : ''}`} />
+          </button>
+          {remind && <RemindMenu pageId={pageId} onDone={close} />}
           <div className="menu-sep" />
           <button className="menu-item" role="menuitem" type="button" onClick={run(download)}>
             <Icon name="download" /> Export as Markdown
