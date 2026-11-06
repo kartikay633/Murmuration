@@ -2,7 +2,7 @@
 
 **A real-time collaborative workspace with its own sync engine.** Many people write the same page at once, work offline, and every copy ends up identical, with every edit kept, attributed and replayable.
 
-[![CI](https://github.com/kartikay633/Murmuration/actions/workflows/ci.yml/badge.svg)](https://github.com/kartikay633/Murmuration/actions/workflows/ci.yml)
+[![CI](https://github.com/kartikay633/Murmuration/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kartikay633/Murmuration/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/live%20demo-murmuration-1A1916)](https://murmuration-t806.onrender.com)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)
 
