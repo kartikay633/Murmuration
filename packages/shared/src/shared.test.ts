@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTree, isInTrash, subtree, can, effectiveRole, keyBetween, parseDocName, type TreeNode } from './index'
+import { buildTree, isInTrash, lockedRole, subtree, can, effectiveRole, keyBetween, parseDocName, type TreeNode } from './index'
 
 const node = (id: string, parentId: string | null, position = 'm'): TreeNode => ({
   id, parentId, position, title: id, icon: null, createdAt: 0, createdBy: 'u', archived: false,
@@ -98,5 +98,16 @@ describe('trash', () => {
     expect(isInTrash(all, 'c')).toBe(true)
     expect(isInTrash(all, 'd')).toBe(false)
     expect(subtree(nodes, 'a').sort()).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('locked pages', () => {
+  it('cap everyone below admin at commenting', () => {
+    expect(lockedRole('editor')).toBe('commenter')
+    expect(lockedRole('commenter')).toBe('commenter')
+    expect(lockedRole('viewer')).toBe('viewer')
+    expect(lockedRole('admin')).toBe('admin')
+    expect(lockedRole('owner')).toBe('owner')
+    expect(lockedRole(null)).toBe(null)
   })
 })

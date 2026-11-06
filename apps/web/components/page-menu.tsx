@@ -34,6 +34,8 @@ export function PageMenu({
   editor,
   doc,
   canDuplicate,
+  locked = false,
+  onLock,
   onBlame,
   onLab,
   onCopyLink,
@@ -43,6 +45,9 @@ export function PageMenu({
   editor: Editor | null
   doc: Y.Doc | null
   canDuplicate: boolean
+  locked?: boolean
+  /** Admins only: lock or unlock the page. */
+  onLock?(on: boolean): void
   onBlame(): void
   onLab(): void
   onCopyLink(): void
@@ -131,6 +136,11 @@ export function PageMenu({
             <Icon name="chev" className={`menu-chev${remind ? ' open' : ''}`} />
           </button>
           {remind && <RemindMenu pageId={pageId} onDone={close} />}
+          {onLock && (
+            <button className="menu-item" role="menuitem" type="button" onClick={run(() => onLock(!locked))}>
+              <Icon name="lock" /> {locked ? 'Unlock page' : 'Lock page'}
+            </button>
+          )}
           <div className="menu-sep" />
           <button className="menu-item" role="menuitem" type="button" onClick={run(download)}>
             <Icon name="download" /> Export as Markdown

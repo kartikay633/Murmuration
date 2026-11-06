@@ -37,6 +37,7 @@ export default async function PageRoute({
       overrides={await pageOverrides(pageId)}
       focusThread={thread && UUID.test(thread) ? thread : null}
       isNew={isNew === '1'}
+      locked={access.locked}
       follow={follow && UUID.test(follow) ? follow : null}
       template={template && /^[a-z]{1,20}$/.test(template) ? template : null}
     />

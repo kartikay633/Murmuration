@@ -555,6 +555,10 @@ kbd {
 .versions.compact ul { display: flex; flex-wrap: wrap; gap: 6px; }
 .versions.compact .version-pick { padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; }
 
+/* Locked pages */
+.locked-note { display: flex; align-items: center; gap: 8px; }
+.locked-note .link-btn { margin-left: 4px; }
+
 /* Reminders */
 .note.reminder { align-items: center; }
 .note-icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--paper-3); color: var(--ink-2); }

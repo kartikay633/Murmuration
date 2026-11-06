@@ -84,6 +84,8 @@ export const pages = pgTable(
      * address (144 random bits, so a plain index is enough).
      */
     publicToken: text('public_token'),
+    /** Locked pages can't be edited except by admins; everyone else may still read and comment. */
+    lockedAt: timestamp('locked_at', { withTimezone: true }),
   },
   (t) => [
     index('pages_workspace_idx').on(t.workspaceId),

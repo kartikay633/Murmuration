@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm'
-import { effectiveRole, type Role } from '@murmuration/shared'
+import { effectiveRole, lockedRole, type Role } from '@murmuration/shared'
 import { getDb } from './client'
 import { memberships, pageRoles, pages } from './schema'
 
@@ -12,10 +12,13 @@ export async function workspaceRole(userId: string, workspaceId: string): Promis
 }
 
 /** The role a user has on a page, or null if the page is gone or they have no access. */
-export async function pageRole(userId: string, pageId: string): Promise<{ role: Role | null; workspaceId: string } | null> {
+export async function pageRole(
+  userId: string,
+  pageId: string,
+): Promise<{ role: Role | null; workspaceId: string; locked: boolean } | null> {
   const db = getDb()
   const [page] = await db
-    .select({ workspaceId: pages.workspaceId })
+    .select({ workspaceId: pages.workspaceId, lockedAt: pages.lockedAt })
     .from(pages)
     .where(and(eq(pages.id, pageId), isNull(pages.archivedAt)))
   if (!page) return null
@@ -27,5 +30,7 @@ export async function pageRole(userId: string, pageId: string): Promise<{ role: 
       .where(and(eq(pageRoles.pageId, pageId), eq(pageRoles.userId, userId)))
       .then((r) => r[0]?.role ?? null),
   ])
-  return { role: effectiveRole(ws, override), workspaceId: page.workspaceId }
+  const role = effectiveRole(ws, override)
+  const locked = !!page.lockedAt
+  return { role: locked ? lockedRole(role) : role, workspaceId: page.workspaceId, locked }
 }

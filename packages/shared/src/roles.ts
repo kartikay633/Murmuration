@@ -20,6 +20,12 @@ export function effectiveRole(workspaceRole: Role | null, pageOverride: Role | n
   return pageOverride ?? workspaceRole
 }
 
+/** On a locked page, people below admin can at most comment. */
+export function lockedRole(role: Role | null): Role | null {
+  if (!role || atLeast(role, 'admin')) return role
+  return atLeast(role, 'commenter') ? 'commenter' : role
+}
+
 export type Action =
   | 'view'
   | 'comment'

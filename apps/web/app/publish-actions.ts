@@ -29,3 +29,17 @@ export async function setPublished(pageId: string, on: boolean): Promise<{ token
   await getDb().update(pages).set({ publicToken: token }).where(eq(pages.id, pageId))
   return { token }
 }
+
+/**
+ * Lock a page against edits (admins only). Everyone below admin drops to
+ * commenting on it within seconds, including people who have it open.
+ */
+export async function setLocked(pageId: string, on: boolean): Promise<{ error?: string }> {
+  const user = await requireUser()
+  const access = await pageRole(user.id, pageId)
+  if (!access || !can(await workspaceRole(user.id, access.workspaceId), 'manage-members')) {
+    return { error: 'Only admins can lock pages.' }
+  }
+  await getDb().update(pages).set({ lockedAt: on ? new Date() : null }).where(eq(pages.id, pageId))
+  return {}
+}

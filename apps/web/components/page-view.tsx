@@ -21,6 +21,7 @@ import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
+import { setLocked } from '@/app/publish-actions'
 import { useImportedContent } from './import'
 import { Outline } from './outline'
 import { TableBar } from './table-bar'
@@ -35,7 +36,10 @@ export function PageView({
   isNew = false,
   follow = null,
   template = null,
+  locked = false,
 }: {
+  /** An admin locked the page: only admins can edit it. */
+  locked?: boolean
   /** Fill the new page from this template once it loads. */
   template?: string | null
   isNew?: boolean
@@ -53,7 +57,7 @@ export function PageView({
   const role = state.role ?? initialRole
   const canEdit = can(role, 'edit')
   const treeRole = useTreeRole()
-  const canRename = can(treeRole ?? workspace.role, 'manage-pages')
+  const canRename = can(treeRole ?? workspace.role, 'manage-pages') && (!locked || can(workspace.role, 'manage-members'))
   const node = tree.nodes.get(pageId)
   const trail = useMemo(() => ancestors(tree.nodes, pageId), [tree.nodes, pageId])
   const [editor, setEditor] = useState<TiptapEditor | null>(null)
@@ -83,8 +87,18 @@ export function PageView({
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
   const favs = useFavorites(workspace.id)
+  const isAdmin = can(workspace.role, 'manage-members')
   useImportedContent(pageId, editor, state.synced)
   const router = useRouter()
+  const toggleLock = useCallback(
+    (on: boolean) =>
+      void setLocked(pageId, on).then((res) => {
+        if (res.error) return toast(res.error)
+        toast(on ? 'Page locked. Only admins can edit it now.' : 'Page unlocked.')
+        router.refresh()
+      }),
+    [pageId, toast, router],
+  )
   // Page links inside the editor navigate in place.
   useEffect(() => {
     const go = (e: Event) => router.push((e as CustomEvent<string>).detail)
@@ -176,6 +190,8 @@ export function PageView({
           editor={editor}
           doc={shared?.doc ?? null}
           canDuplicate={canRename}
+          locked={locked}
+          onLock={isAdmin ? toggleLock : undefined}
           onBlame={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
           onLab={() => setLabOpen((o) => !o)}
           onCopyLink={() => {
@@ -220,7 +236,18 @@ export function PageView({
             autoFocus={isNew}
           />
           <hr className="page-rule" />
-          {!canEdit && (
+          {locked && (
+            <p className="readonly-note locked-note">
+              <Icon name="lock" />
+              {isAdmin ? 'This page is locked. Only admins can edit it.' : 'This page is locked. You can read it and leave comments.'}
+              {isAdmin && (
+                <button type="button" className="link-btn" onClick={() => toggleLock(false)}>
+                  Unlock
+                </button>
+              )}
+            </p>
+          )}
+          {!canEdit && !locked && (
             <p className="readonly-note">
               <Icon name="eye" />
               {role === 'commenter'
