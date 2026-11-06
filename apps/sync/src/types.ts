@@ -13,8 +13,11 @@ export interface Store {
   /** Append rows in order; resolves with the id of the last one. */
   append(docName: string, rows: StoredRow[]): Promise<number>
   snapshot(docName: string, uptoEventId: number, state: Uint8Array): Promise<void>
-  /** Called after each successful write, e.g. to mirror page titles. */
-  afterFlush?(docName: string, doc: Y.Doc): Promise<void>
+  /**
+   * Called after each successful write, e.g. to mirror page titles. `authorIds`
+   * are the people whose edits were in that write, oldest first.
+   */
+  afterFlush?(docName: string, doc: Y.Doc, authorIds: (string | null)[]): Promise<void>
 }
 
 /** Who may do what. Asked on subscribe and again whenever a cached answer is older than the TTL. */

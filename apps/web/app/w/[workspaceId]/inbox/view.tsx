@@ -82,10 +82,10 @@ export function InboxView({ items }: { items: InboxItem[] }) {
               <button key={item.id} type="button" className={`note${item.read ? '' : ' unread'}`} onClick={() => open(item)}>
                 <Avatar name={item.actorName} ink={item.actorInk} size="md" />
                 <span className="what">
-                  <b>{item.actorName}</b> {item.kind === 'mention' ? 'mentioned you in' : 'replied in'} <b>{item.pageTitle}</b>
+                  <b>{item.actorName}</b> {item.kind === 'reply' ? 'replied in' : 'mentioned you in'} <b>{item.pageTitle}</b>
                 </span>
                 <time dateTime={item.createdAt}>{timeAgo(item.createdAt)}</time>
-                <span className="quote">“{item.quote}”</span>
+                {item.quote && <span className="quote">“{item.quote}”</span>}
                 <span className="c-body">
                   {splitMentions(item.body).map((p, i) =>
                     p.mention ? (

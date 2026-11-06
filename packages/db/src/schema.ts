@@ -5,6 +5,7 @@ import {
   boolean,
   customType,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -273,6 +274,45 @@ export const pageVersions = pgTable(
     createdAt: created(),
   },
   (t) => [index('page_versions_page_idx').on(t.pageId, t.eventId)],
+)
+
+/** Who is @mentioned in each page right now (so only new mentions notify). */
+export const pageMentions = pgTable(
+  'page_mentions',
+  {
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.pageId, t.userId] })],
+)
+
+/** "Ana mentioned you in Q4 roadmap": an inbox entry for an @mention in page text. */
+export const mentionNotices = pgTable(
+  'mention_notices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: created(),
+  },
+  (t) => [index('mention_notices_user_idx').on(t.userId, t.createdAt)],
+)
+
+/** Each page's to-dos, mirrored by the sync server for the workspace task list. */
+export const pageTasks = pgTable(
+  'page_tasks',
+  {
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    text: text('text').notNull(),
+    done: boolean('done').notNull().default(false),
+    assignees: uuid('assignees').array().notNull().default(sql`'{}'::uuid[]`),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.pageId, t.position] }), index('page_tasks_assignees_idx').using('gin', t.assignees)],
 )
 
 export type User = typeof users.$inferSelect

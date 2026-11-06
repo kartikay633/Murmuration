@@ -33,6 +33,7 @@ function inlineText(children: XmlNode[]): string {
     if (isText(c)) {
       for (const op of c.toDelta()) if (typeof op.insert === 'string') out += op.insert
     } else if (c.nodeName === 'hardBreak') out += '\n'
+    else if (c.nodeName === 'mention') out += `@${String(c.getAttribute('label') ?? '')}`
     else out += blockText(c)
   }
   return out
@@ -66,6 +67,7 @@ function inlineMd(children: XmlNode[]): string {
   for (const c of children) {
     if (!isText(c)) {
       if (c.nodeName === 'hardBreak') out += '  \n'
+      else if (c.nodeName === 'mention') out += `@${escapeMd(String(c.getAttribute('label') ?? ''))}`
       continue
     }
     for (const op of c.toDelta()) {

@@ -2,7 +2,7 @@ import type { Server as HttpServer } from 'node:http'
 import { claimDueReminders, cleanupGuests, closeDb, EVENTS_CHANNEL, getSql, publish } from '@murmuration/db'
 import type { LiveEvent } from '@murmuration/shared'
 import { redisBus } from './bus'
-import { backfillSearchText, pgAccess, pgStore } from './pg'
+import { backfillSearchText, backfillTasks, pgAccess, pgStore } from './pg'
 import { runPractice } from './practice'
 import { createSyncServer } from './server'
 
@@ -53,6 +53,7 @@ export async function startSync(opts: { port: number; attach?: { server: HttpSer
       .catch((e) => console.error('[sync] guest cleanup failed', e))
   void sweep()
   void backfillSearchText(console.log).catch((e) => console.error('[sync] search backfill failed', e))
+  void backfillTasks(console.log).catch((e) => console.error('[sync] task backfill failed', e))
   const sweeper = setInterval(sweep, 3600_000)
 
   // Reminders that came due: nudge the owners' open tabs so the inbox updates.

@@ -13,6 +13,7 @@ import { CatchUp } from '@/lib/catch-up'
 import { contentExtensions } from '@/lib/content-schema'
 import { CommentAnchors } from '@/lib/comment-anchors'
 import { PageLinkKeys, PageLinkMenu, usePageLinkMenu } from './page-link-menu'
+import { MentionKeys, PersonMentionMenu, useMentionMenu } from './person-mention-menu'
 import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
 
 // Presence comes from other people's browsers, so treat it as untrusted:
@@ -50,6 +51,7 @@ export function Editor({
 }) {
   const slash = useSlashMenu()
   const pageLink = usePageLinkMenu()
+  const mention = useMentionMenu()
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -63,6 +65,7 @@ export function Editor({
         }),
         SlashKeys.configure({ onKey: slash.onKey }),
         PageLinkKeys.configure({ onKey: pageLink.onKey }),
+        MentionKeys.configure({ onKey: mention.onKey }),
         Collaboration.configure({ document: doc }),
         CatchUp,
         CommentAnchors.configure({ onActivate: (id) => activateRef?.current?.(id) }),
@@ -111,6 +114,7 @@ export function Editor({
       <EditorContent editor={editor} />
       <SlashMenu editor={editor} keyRef={slash.keyRef} />
       <PageLinkMenu editor={editor} keyRef={pageLink.keyRef} pageId={pageId} />
+      <PersonMentionMenu editor={editor} keyRef={mention.keyRef} />
     </>
   )
 }

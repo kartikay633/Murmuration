@@ -38,6 +38,7 @@ function inline(children: XmlNode[]): string {
   for (const c of children) {
     if (!isText(c)) {
       if (c.nodeName === 'hardBreak') out += '<br>'
+      else if (c.nodeName === 'mention') out += `<span class="person-mention">@${escapeHtml(String(c.getAttribute('label') ?? ''))}</span>`
       continue
     }
     for (const op of c.toDelta()) {

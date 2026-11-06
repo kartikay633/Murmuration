@@ -1,6 +1,7 @@
 'use server'
 
 import {
+  alias,
   and,
   asc,
   commentThreads,
@@ -14,6 +15,7 @@ import {
   pageRole,
   pages,
   lte,
+  mentionNotices,
   publish,
   reminders,
   sql,
@@ -21,6 +23,7 @@ import {
   workspaceRole,
 } from '@murmuration/db'
 import { atLeast, can, isInk, type Ink, type Role } from '@murmuration/shared'
+
 import { requireUser } from '@/lib/auth'
 
 export interface CommentView {
@@ -268,7 +271,7 @@ export async function deleteComment(commentId: string): Promise<Result> {
 
 export interface InboxItem {
   id: string
-  kind: 'mention' | 'reply' | 'reminder'
+  kind: 'mention' | 'reply' | 'reminder' | 'page-mention'
   read: boolean
   createdAt: string
   actorName: string
@@ -311,7 +314,37 @@ export async function listInbox(workspaceId: string): Promise<InboxItem[]> {
     .where(and(eq(reminders.userId, user.id), eq(reminders.workspaceId, workspaceId), lte(reminders.dueAt, new Date())))
     .orderBy(desc(reminders.dueAt))
     .limit(30)
+  const actor = alias(users, 'actor')
+  const named = await getDb()
+    .select({
+      id: mentionNotices.id,
+      at: mentionNotices.createdAt,
+      readAt: mentionNotices.readAt,
+      pageId: pages.id,
+      pageTitle: pages.title,
+      actorName: actor.name,
+      actorInk: actor.ink,
+    })
+    .from(mentionNotices)
+    .innerJoin(pages, and(eq(pages.id, mentionNotices.pageId), isNull(pages.archivedAt)))
+    .leftJoin(actor, eq(actor.id, mentionNotices.actorId))
+    .where(and(eq(mentionNotices.userId, user.id), eq(mentionNotices.workspaceId, workspaceId)))
+    .orderBy(desc(mentionNotices.createdAt))
+    .limit(40)
   const items: InboxItem[] = [
+    ...named.map((r) => ({
+      id: r.id,
+      kind: 'page-mention' as const,
+      read: !!r.readAt,
+      createdAt: r.at.toISOString(),
+      actorName: r.actorName ?? 'Someone',
+      actorInk: isInk(r.actorInk) ? r.actorInk : ('ochre' as Ink),
+      pageId: r.pageId,
+      pageTitle: r.pageTitle || 'Untitled',
+      threadId: '',
+      quote: '',
+      body: '',
+    })),
     ...rows.map((r) => ({
       id: r.id,
       kind: r.kind,
@@ -359,7 +392,11 @@ export async function unreadCount(workspaceId: string): Promise<number> {
         lte(reminders.dueAt, new Date()),
       ),
     )
-  return (row?.n ?? 0) + (rem?.n ?? 0)
+  const [men] = await getDb()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(mentionNotices)
+    .where(and(eq(mentionNotices.userId, user.id), eq(mentionNotices.workspaceId, workspaceId), isNull(mentionNotices.readAt)))
+  return (row?.n ?? 0) + (rem?.n ?? 0) + (men?.n ?? 0)
 }
 
 /** Mark some (or, with no ids, all) of my notifications in a workspace as read. */
@@ -371,6 +408,9 @@ export async function markRead(workspaceId: string, ids?: string[]): Promise<voi
   const rem = [eq(reminders.userId, user.id), eq(reminders.workspaceId, workspaceId), isNull(reminders.readAt), lte(reminders.dueAt, new Date())]
   if (ids?.length) rem.push(inArray(reminders.id, ids.slice(0, 200)))
   await getDb().update(reminders).set({ readAt: new Date() }).where(and(...rem))
+  const men = [eq(mentionNotices.userId, user.id), eq(mentionNotices.workspaceId, workspaceId), isNull(mentionNotices.readAt)]
+  if (ids?.length) men.push(inArray(mentionNotices.id, ids.slice(0, 200)))
+  await getDb().update(mentionNotices).set({ readAt: new Date() }).where(and(...men))
   await publish({ kind: 'inbox', userIds: [user.id] })
 }
 

@@ -328,7 +328,7 @@ export class Room {
         await this.store.snapshot(this.name, this.lastEventId, Y.encodeStateAsUpdate(this.doc))
         this.sinceSnapshot = 0
       }
-      await this.store.afterFlush?.(this.name, this.doc)
+      await this.store.afterFlush?.(this.name, this.doc, rows.map((r) => r.authorId))
     } catch (err) {
       this.opts.log?.(`post-write step failed for ${this.name}`, err)
     }

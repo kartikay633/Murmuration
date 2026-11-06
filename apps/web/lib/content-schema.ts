@@ -6,6 +6,7 @@ import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-detai
 import Highlight from '@tiptap/extension-highlight'
 import { Markdown } from '@tiptap/markdown'
 import { Callout } from './callout'
+import { PersonMention } from './mention-node'
 
 /**
  * Every kind of block and mark a page can contain. The live editor and the
@@ -33,6 +34,7 @@ export function contentExtensions(): AnyExtension[] {
     DetailsContent,
     Callout,
     Highlight,
+    PersonMention,
     // Lets Markdown be loaded into a page (imports).
     Markdown,
   ]
