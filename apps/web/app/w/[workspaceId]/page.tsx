@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ workspace
 export default async function WorkspaceHome({ params }: { params: Promise<{ workspaceId: string }> }) {
   const { workspaceId } = await params
   await requireUser()
-  const page = await firstPage(workspaceId)
-  if (page) redirect(`/w/${workspaceId}/p/${page}`)
+  // A workspace with pages opens on its home; a new, empty one invites the first page.
+  if (await firstPage(workspaceId)) redirect(`/w/${workspaceId}/home`)
   return <EmptyWorkspace />
 }

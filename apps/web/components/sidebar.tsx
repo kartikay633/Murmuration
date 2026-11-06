@@ -173,6 +173,15 @@ export function Sidebar() {
           <kbd className="nav-kbd">{mod}K</kbd>
         </button>
         <Link
+          href={`/w/${workspace.id}/home`}
+          className={`item${pathname.endsWith('/home') ? ' active' : ''}`}
+          style={{ paddingLeft: 8, gap: 8 }}
+          onClick={() => setNavOpen(false)}
+        >
+          <Icon name="home" />
+          <span className="label">Home</span>
+        </Link>
+        <Link
           href={`/w/${workspace.id}/inbox`}
           className={`item${pathname.endsWith('/inbox') ? ' active' : ''}`}
           style={{ paddingLeft: 8, gap: 8 }}
