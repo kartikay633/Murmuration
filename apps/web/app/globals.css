@@ -812,6 +812,13 @@ kbd {
   .collaboration-carets__selection, .comment-anchor { background: none !important; border: 0 !important; }
 }
 
+/* Sidebar: workspace views, two per row */
+.nav-views { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 4px 0 6px; }
+.nav-view { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 8px; border-radius: 7px; color: var(--ink-2); font: 13px var(--font-sans), sans-serif; text-decoration: none; }
+.nav-view:hover { background: var(--paper-3); color: var(--ink); }
+.nav-view.active { background: var(--paper-3); color: var(--ink); font-weight: 500; }
+.nav-view .i { color: var(--ink-3); flex: none; }
+
 /* Command palette */
 .journal-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .search-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }

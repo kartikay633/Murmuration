@@ -191,43 +191,29 @@ export function Sidebar() {
           <span className="label">Inbox</span>
           {unread > 0 && <span className="badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
         </Link>
-        <Link
-          href={`/w/${workspace.id}/tasks`}
-          className={`item${pathname.endsWith('/tasks') ? ' active' : ''}`}
-          style={{ paddingLeft: 8, gap: 8 }}
-          onClick={() => setNavOpen(false)}
-        >
-          <Icon name="check" />
-          <span className="label">Tasks</span>
-        </Link>
-        <Link
-          href={`/w/${workspace.id}/board`}
-          className={`item${pathname.endsWith('/board') ? ' active' : ''}`}
-          style={{ paddingLeft: 8, gap: 8 }}
-          onClick={() => setNavOpen(false)}
-        >
-          <Icon name="board" />
-          <span className="label">Board</span>
-        </Link>
         <JournalButton />
-        <Link
-          href={`/w/${workspace.id}/calendar`}
-          className={`item${pathname.endsWith('/calendar') ? ' active' : ''}`}
-          style={{ paddingLeft: 8, gap: 8 }}
-          onClick={() => setNavOpen(false)}
-        >
-          <Icon name="grid" />
-          <span className="label">Calendar</span>
-        </Link>
-        <Link
-          href={`/w/${workspace.id}/activity`}
-          className={`item${pathname.endsWith('/activity') ? ' active' : ''}`}
-          style={{ paddingLeft: 8, gap: 8 }}
-          onClick={() => setNavOpen(false)}
-        >
-          <Icon name="pulse" />
-          <span className="label">Activity</span>
-        </Link>
+        {/* Workspace-wide views, two to a row so the page tree stays in sight. */}
+        <div className="nav-views">
+          {(
+            [
+              ['tasks', 'check', 'Tasks'],
+              ['board', 'board', 'Board'],
+              ['calendar', 'grid', 'Calendar'],
+              ['activity', 'pulse', 'Activity'],
+            ] as const
+          ).map(([path, icon, label]) => (
+            <Link
+              key={path}
+              href={`/w/${workspace.id}/${path}`}
+              className={`nav-view${pathname.endsWith(`/${path}`) ? ' active' : ''}`}
+              aria-current={pathname.endsWith(`/${path}`) ? 'page' : undefined}
+              onClick={() => setNavOpen(false)}
+            >
+              <Icon name={icon} />
+              {label}
+            </Link>
+          ))}
+        </div>
         <FavoritesList activeId={activeId} unseen={unseen} />
         <div className="nav-label">
           Pages
