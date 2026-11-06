@@ -227,6 +227,16 @@ export const favorites = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
 )
 
+/** Which pages link to which, mirrored from page bodies by the sync server (for backlinks). */
+export const pageLinks = pgTable(
+  'page_links',
+  {
+    fromPageId: uuid('from_page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    toPageId: uuid('to_page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.fromPageId, t.toPageId] }), index('page_links_to_idx').on(t.toPageId)],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect

@@ -194,3 +194,23 @@ export function fragmentMarkdown(fragment: FragmentLike, title?: string): string
   const body = blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
   return (title ? `# ${title.trim() || 'Untitled'}\n\n` : '') + body + '\n'
 }
+
+const PAGE_HREF = /\/p\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[?#]|$)/
+
+/** Ids of the pages this body links to (links whose address is a page in this app). */
+export function fragmentPageLinks(fragment: FragmentLike): string[] {
+  const out = new Set<string>()
+  const walk = (nodes: XmlNode[]) => {
+    for (const n of nodes) {
+      if (isText(n)) {
+        for (const op of n.toDelta()) {
+          const href = (op.attributes?.link as { href?: unknown } | undefined)?.href
+          const m = typeof href === 'string' ? PAGE_HREF.exec(href) : null
+          if (m) out.add(m[1]!)
+        }
+      } else walk(kids(n))
+    }
+  }
+  walk(kids(fragment))
+  return [...out]
+}

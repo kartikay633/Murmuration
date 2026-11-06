@@ -8,13 +8,15 @@ import {
   eq,
   getDb,
   gt,
+  inArray,
   isNull,
+  pageLinks,
   pageRole,
   pages,
   sql,
   workspaceRole,
 } from '@murmuration/db'
-import { fragmentText, pageDoc, parseDocName, TREE_PAGES } from '@murmuration/shared'
+import { fragmentPageLinks, fragmentText, pageDoc, parseDocName, TREE_PAGES } from '@murmuration/shared'
 import type { Access, Store } from './types'
 
 export const pgAccess: Access = {
@@ -27,6 +29,23 @@ export const pgAccess: Access = {
 /** Titles we last wrote to the pages table, per tree doc, so we only write changes. */
 const mirroredTitles = new Map<string, Map<string, string>>()
 const mirroredBodies = new Map<string, string>()
+const mirroredLinks = new Map<string, string>()
+
+/** Replace a page's outgoing links, keeping only targets in the same workspace. */
+async function syncLinks(fromPageId: string, toIds: string[]) {
+  const db = getDb()
+  await db.transaction(async (tx) => {
+    await tx.delete(pageLinks).where(eq(pageLinks.fromPageId, fromPageId))
+    if (!toIds.length) return
+    const [from] = await tx.select({ ws: pages.workspaceId }).from(pages).where(eq(pages.id, fromPageId))
+    if (!from) return
+    const targets = await tx
+      .select({ id: pages.id })
+      .from(pages)
+      .where(and(eq(pages.workspaceId, from.ws), inArray(pages.id, toIds.slice(0, 500))))
+    if (targets.length) await tx.insert(pageLinks).values(targets.map((t) => ({ fromPageId, toPageId: t.id }))).onConflictDoNothing()
+  })
+}
 
 export const pgStore: Store = {
   async load(docName) {
@@ -67,6 +86,14 @@ export const pgStore: Store = {
     if (!parsed) return
     const db = getDb()
     if (parsed.kind === 'page') {
+      // Mirror links to other pages (for backlinks), only when they changed.
+      const links = fragmentPageLinks(doc.getXmlFragment('default')).filter((id) => id !== parsed.id)
+      const linkKey = links.slice().sort().join(',')
+      if (mirroredLinks.get(docName) !== linkKey) {
+        await syncLinks(parsed.id, links)
+        mirroredLinks.set(docName, linkKey)
+        if (mirroredLinks.size > 5000) mirroredLinks.delete(mirroredLinks.keys().next().value!)
+      }
       // Mirror the body's plain text for search, only when it changed.
       const text = fragmentText(doc.getXmlFragment('default')).slice(0, 200_000)
       if (mirroredBodies.get(docName) !== text) {

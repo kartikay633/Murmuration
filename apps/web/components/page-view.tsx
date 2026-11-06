@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Editor as TiptapEditor } from '@tiptap/react'
 import { ancestors, can, pageDoc, readPresenceUser, type PresenceUser, type Role } from '@murmuration/shared'
@@ -10,6 +11,7 @@ import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { useFavorites } from '@/lib/favorites'
 import { Avatar } from './avatar'
+import { Backlinks } from './backlinks'
 import { CatchUpBanner } from './catch-up-banner'
 import { FollowPill, useFollow } from './follow'
 import { CommentLayer } from './comments'
@@ -79,6 +81,13 @@ export function PageView({
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
   const favs = useFavorites(workspace.id)
+  const router = useRouter()
+  // Page links inside the editor navigate in place.
+  useEffect(() => {
+    const go = (e: Event) => router.push((e as CustomEvent<string>).detail)
+    window.addEventListener('mm:navigate', go)
+    return () => window.removeEventListener('mm:navigate', go)
+  }, [router])
   const rename = useCallback((t: string) => tree.rename(pageId, t), [tree, pageId])
   const followMode = useFollow({ pageId, editor, handle: shared?.handle ?? null, scrollEl: scrollRef, initial: follow })
 
@@ -221,7 +230,7 @@ export function PageView({
           )}
           {shared?.ready ? (
             <>
-              <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} activateRef={activateRef} />
+              <Editor doc={shared.doc} handle={shared.handle} user={user} editable={canEdit} onReady={onReady} activateRef={activateRef} pageId={pageId} />
               <TemplatePicker
                 editor={editor}
                 ready={state.synced}
@@ -230,6 +239,7 @@ export function PageView({
                 rename={rename}
                 requested={template}
               />
+              <Backlinks pageId={pageId} />
             </>
           ) : (
             <div className="skeleton" aria-label="Loading page">

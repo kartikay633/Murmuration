@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { describe, expect, it } from 'vitest'
-import { fragmentMarkdown, fragmentText } from './text'
+import { fragmentMarkdown, fragmentPageLinks, fragmentText } from './text'
 
 function el(name: string, attrs: Record<string, unknown>, children: (Y.XmlElement | Y.XmlText)[]) {
   const e = new Y.XmlElement(name)
@@ -102,5 +102,26 @@ describe('markdown for richer blocks', () => {
       ].join('\n'),
     )
     expect(fragmentText(f)).toContain('Hidden')
+  })
+})
+
+describe('page links', () => {
+  it('finds links to other pages, once each, ignoring outside links', () => {
+    const doc = new Y.Doc()
+    const f = doc.getXmlFragment('default')
+    const id = '123e4567-e89b-12d3-a456-426614174000'
+    f.insert(0, [
+      el('paragraph', {}, [
+        txt([
+          ['See ', {}],
+          ['Roadmap', { link: { href: `/w/5e81312d-b50c-4d5d-a474-bec4a035c528/p/${id}` } }],
+          [' and ', {}],
+          ['again', { link: { href: `https://murmuration.app/w/x/p/${id}?thread=1` } }],
+          [' or ', {}],
+          ['docs', { link: { href: 'https://example.com/p/not-a-page' } }],
+        ]),
+      ]),
+    ])
+    expect(fragmentPageLinks(f)).toEqual([id])
   })
 })

@@ -33,6 +33,7 @@ const ITEMS: BlockItem[] = [
   { id: 'table', label: 'Table', hint: 'Rows and columns', keywords: 'table grid rows columns spreadsheet', glyph: '▦', run: (c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
   { id: 'toggle', label: 'Toggle', hint: 'A section you can fold away', keywords: 'toggle details collapse fold accordion', glyph: '▸', run: (c) => c.setDetails() },
   { id: 'callout', label: 'Callout', hint: 'Make a note stand out', keywords: 'callout note info warning box aside', glyph: '!', run: (c) => c.toggleCallout() },
+  { id: 'pagelink', label: 'Link to page', hint: 'Point to another page here', keywords: 'link page mention reference backlink', glyph: '↗', run: (c) => c.insertContent('[[') },
   { id: 'divider', label: 'Divider', hint: 'A horizontal rule', keywords: 'divider rule line hr separator', glyph: '—', run: (c) => c.setHorizontalRule() },
 ]
 
@@ -44,17 +45,21 @@ interface MenuState {
   top: number
 }
 
-/** Hands key presses to the open menu before the editor sees them. */
-export const SlashKeys = Extension.create<{ onKey: (e: KeyboardEvent) => boolean }>({
-  name: 'slashKeys',
-  addOptions() {
-    return { onKey: () => false }
-  },
-  addProseMirrorPlugins() {
-    const options = this.options
-    return [new Plugin({ key: new PluginKey('slashKeys'), props: { handleKeyDown: (_view, event) => options.onKey(event) } })]
-  },
-})
+/** Hands key presses to an open menu before the editor sees them. One per menu. */
+export function keyExtension(name: string) {
+  return Extension.create<{ onKey: (e: KeyboardEvent) => boolean }>({
+    name,
+    addOptions() {
+      return { onKey: () => false }
+    },
+    addProseMirrorPlugins() {
+      const options = this.options
+      return [new Plugin({ key: new PluginKey(name), props: { handleKeyDown: (_view, event) => options.onKey(event) } })]
+    },
+  })
+}
+
+export const SlashKeys = keyExtension('slashKeys')
 
 export function useSlashMenu() {
   const keyRef = useRef<(e: KeyboardEvent) => boolean>(() => false)

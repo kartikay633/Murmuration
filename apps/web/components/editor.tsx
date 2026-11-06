@@ -17,6 +17,7 @@ import type { CurrentUser } from '@/lib/auth'
 import { Callout } from '@/lib/callout'
 import { CatchUp } from '@/lib/catch-up'
 import { CommentAnchors } from '@/lib/comment-anchors'
+import { PageLinkKeys, PageLinkMenu, usePageLinkMenu } from './page-link-menu'
 import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
 
 // Presence comes from other people's browsers, so treat it as untrusted:
@@ -41,7 +42,9 @@ export function Editor({
   editable,
   onReady,
   activateRef,
+  pageId,
 }: {
+  pageId: string
   doc: Y.Doc
   handle: DocHandle
   user: CurrentUser
@@ -51,6 +54,7 @@ export function Editor({
   activateRef?: React.RefObject<((id: string) => void) | null>
 }) {
   const slash = useSlashMenu()
+  const pageLink = usePageLinkMenu()
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -82,6 +86,7 @@ export function Editor({
         Callout,
         Highlight,
         SlashKeys.configure({ onKey: slash.onKey }),
+        PageLinkKeys.configure({ onKey: pageLink.onKey }),
         Collaboration.configure({ document: doc }),
         CatchUp,
         CommentAnchors.configure({ onActivate: (id) => activateRef?.current?.(id) }),
@@ -101,6 +106,13 @@ export function Editor({
         handleClick: (view, _pos, event) => {
           const a = (event.target as HTMLElement).closest('a[href]')
           if (!a || !view.dom.contains(a)) return false
+          // Links to pages in this app open in place, like moving through a wiki.
+          const url = new URL((a as HTMLAnchorElement).href, window.location.href)
+          if (url.origin === window.location.origin && url.pathname.startsWith('/w/')) {
+            if (event.metaKey || event.ctrlKey) window.open(url.href, '_blank', 'noopener')
+            else window.dispatchEvent(new CustomEvent('mm:navigate', { detail: url.pathname + url.search }))
+            return true
+          }
           if (view.editable && !(event.metaKey || event.ctrlKey)) return false
           window.open((a as HTMLAnchorElement).href, '_blank', 'noopener,noreferrer')
           return true
@@ -122,6 +134,7 @@ export function Editor({
     <>
       <EditorContent editor={editor} />
       <SlashMenu editor={editor} keyRef={slash.keyRef} />
+      <PageLinkMenu editor={editor} keyRef={pageLink.keyRef} pageId={pageId} />
     </>
   )
 }
