@@ -29,6 +29,7 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 
 ### Writing and organising
 
+- **A home for each workspace**: the pages you were last on, what changed since you looked, your to-dos and upcoming reminders.
 - **Blocks from the keyboard.** Type `/` for headings, to-do lists, tables, toggles, callouts, quotes, code and dividers; select text for bold, italic, highlight, links and comments.
 - **Page links and backlinks.** Type `[[` to link to another page. The sync server indexes links as pages are saved, so every page shows what links to it.
 - **Search everything** with Ctrl/⌘+K: Postgres full-text search over every page's text (mirrored from the live documents by the sync server), with highlighted excerpts, plus quick actions.
@@ -46,6 +47,8 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 - **Reminders** on any page, delivered to your inbox when due.
 - **Activity.** Who worked on which pages this week, grouped into work sessions.
 - **Publish to web.** A read-only public link for any page, rendered on the server from the live document, with private links and comments left out.
+- **Locked pages.** Admins can lock a finished page. Everyone else drops to commenting on it, enforced by the sync server like any other role.
+- **Workspace settings**: rename, manage people, leave, and **export everything** as a .zip of Markdown files in folders that match the sidebar.
 
 ## Architecture
 
@@ -159,3 +162,4 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Blocks, search, templates, journal, trash, favorites, page links and backlinks
 - [x] Catch-up highlights, follow mode, named versions, reminders, activity, publish to web
 - [x] @mentions in pages, a live workspace task list, Markdown import, outline, focus mode
+- [x] Workspace home, settings and full export, page locking
