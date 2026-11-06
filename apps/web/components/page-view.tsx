@@ -21,6 +21,7 @@ import { NetworkLab, useFingerprintPresence } from './network-lab'
 import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
+import { useImportedContent } from './import'
 import { TableBar } from './table-bar'
 import { TemplatePicker } from './template-picker'
 import { useWorkspace } from './workspace'
@@ -81,6 +82,7 @@ export function PageView({
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
   const favs = useFavorites(workspace.id)
+  useImportedContent(pageId, editor, state.synced)
   const router = useRouter()
   // Page links inside the editor navigate in place.
   useEffect(() => {

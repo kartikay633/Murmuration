@@ -4,6 +4,7 @@ import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import Highlight from '@tiptap/extension-highlight'
+import { Markdown } from '@tiptap/markdown'
 import { Callout } from './callout'
 
 /**
@@ -32,5 +33,7 @@ export function contentExtensions(): AnyExtension[] {
     DetailsContent,
     Callout,
     Highlight,
+    // Lets Markdown be loaded into a page (imports).
+    Markdown,
   ]
 }

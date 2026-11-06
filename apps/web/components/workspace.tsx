@@ -7,6 +7,7 @@ import type { Member, WorkspaceSummary } from '@/lib/data'
 import { SyncProvider } from '@/lib/sync'
 import { TreeProvider } from '@/lib/tree'
 import { CommandPalette } from './command-palette'
+import { ImportListener } from './import'
 import { Sidebar } from './sidebar'
 
 export interface ToastAction {
@@ -69,6 +70,7 @@ export function WorkspaceShell({
             </main>
           </div>
           <CommandPalette />
+          <ImportListener />
         </TreeProvider>
       </SyncProvider>
       <div className={`toast${message ? ' on' : ''}${message?.action ? ' has-action' : ''}`} role="status" aria-live="polite">
