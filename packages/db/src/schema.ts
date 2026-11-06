@@ -78,9 +78,15 @@ export const pages = pgTable(
     createdAt: created(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
+    /**
+     * Set when the page is published to the web: the secret part of its public
+     * address (144 random bits, so a plain index is enough).
+     */
+    publicToken: text('public_token'),
   },
   (t) => [
     index('pages_workspace_idx').on(t.workspaceId),
+    index('pages_public_token_idx').on(t.publicToken),
     index('pages_search_idx').using('gin', sql`to_tsvector('simple', ${t.title} || ' ' || ${t.bodyText})`),
   ],
 )

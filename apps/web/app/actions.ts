@@ -18,6 +18,7 @@ import {
   inArray,
   isNull,
   getDb,
+  loadDocUpdates,
   memberships,
   pageRole,
   pageRoles,
@@ -195,19 +196,7 @@ export async function duplicatePage(pageId: string): Promise<{ id?: string; titl
   }
   const db = getDb()
   const [source] = await db.select({ title: pages.title }).from(pages).where(eq(pages.id, pageId))
-  const name = pageDoc(pageId)
-  const [snap] = await db
-    .select({ upto: docSnapshots.uptoEventId, state: docSnapshots.state })
-    .from(docSnapshots)
-    .where(eq(docSnapshots.docName, name))
-    .orderBy(desc(docSnapshots.uptoEventId))
-    .limit(1)
-  const events = await db
-    .select({ update: docEvents.update })
-    .from(docEvents)
-    .where(and(eq(docEvents.docName, name), gt(docEvents.id, snap?.upto ?? 0)))
-    .orderBy(asc(docEvents.id))
-  const updates = [...(snap ? [snap.state] : []), ...events.map((e) => e.update)]
+  const updates = await loadDocUpdates(pageDoc(pageId))
 
   const title = `${source?.title || 'Untitled'} (copy)`.slice(0, 300)
   const [row] = await db

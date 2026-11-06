@@ -33,6 +33,7 @@ const PATHS = {
   highlight: 'M9.5 3l3.5 3.5-5.5 5.5H4v-3.5zM2.5 14h11',
   calendar: 'M3 4h10v9.5H3zM3 7h10M5.5 2.5V5M10.5 2.5V5',
   pulse: 'M1.75 8.5h2.5l1.75-4 3 8 1.75-4h3.5',
+  external: 'M9 3h4v4M13 3 7.5 8.5M11.5 9.5v3.5h-8.5v-8.5h3.5',
   inbox: 'M2.5 9.5h3l1 2h3l1-2h3M2.5 9.5 4.1 4.3a1 1 0 0 1 1-.8h5.8a1 1 0 0 1 1 .8l1.6 5.2v3a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z',
 } as const
 

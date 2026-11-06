@@ -481,6 +481,28 @@ kbd {
 .star-btn[aria-pressed="true"] { color: var(--ink-ochre); }
 .star-btn[aria-pressed="true"] .i path { fill: currentColor; }
 
+/* Publish to web (share popover) */
+.publish { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.publish-row { display: flex; align-items: center; gap: 12px; }
+.publish-row .n { display: block; font-size: 13px; font-weight: 600; }
+.publish-row .e { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+.publish-link { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.publish-link .input { flex: 1; min-width: 0; font-size: 12.5px; }
+
+/* Published pages */
+.public { min-height: 100vh; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; }
+.public-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; padding: 0 24px; border-bottom: 1px solid var(--rule); font: 13px var(--font-sans), sans-serif; }
+.public-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; color: var(--ink); }
+.public-meta { color: var(--ink-3); }
+.public-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; flex: 1; }
+.public-title { margin: 0 0 28px; padding-bottom: 22px; border-bottom: 1px solid var(--rule); font: 500 44px/1.12 var(--font-serif), serif; letter-spacing: -.02em; }
+.public-body.ProseMirror { min-height: 0; white-space: normal; }
+.public-body details > summary { cursor: pointer; font-weight: 500; }
+.public-body details > div { margin-top: 6px; padding-left: 18px; }
+.public-foot { padding: 20px 24px 28px; text-align: center; color: var(--ink-3); font: 12.5px var(--font-sans), sans-serif; }
+.public-foot a { color: var(--ink-2); }
+@media (max-width: 720px) { .public-page { padding-top: 32px; } .public-title { font-size: 34px; } }
+
 /* Activity */
 .act-chart { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin: 4px 0 28px; padding: 14px 16px 10px; border: 1px solid var(--rule); border-radius: 12px; }
 .act-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 112px; }

@@ -7,6 +7,7 @@ import { addMember, setPageRole } from '@/app/actions'
 import { Avatar } from './avatar'
 import { Icon } from './icons'
 import { useDismiss } from './menu'
+import { PublishSection } from './publish'
 import { useWorkspace } from './workspace'
 
 export function SharePopover({ pageId, overrides: initial }: { pageId: string; overrides: Record<string, Role> }) {
@@ -111,6 +112,7 @@ export function SharePopover({ pageId, overrides: initial }: { pageId: string; o
             )
           })}
           {!isAdmin && <p className="popover-note">Only admins can change who has access.</p>}
+          <PublishSection pageId={pageId} isAdmin={isAdmin} />
         </div>
       )}
     </div>
