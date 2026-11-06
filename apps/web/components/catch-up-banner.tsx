@@ -57,14 +57,23 @@ export function CatchUpBanner({ pageId, editor, ready }: { pageId: string; edito
 
   // Keep "seen up to" current while you're here, and when you leave.
   useEffect(() => {
-    const seen = () => void markPageSeen(pageId).catch(() => {})
+    // Throttled: visibility can flip many times a second (tab switching,
+    // embedded browsers); one mark every 20 seconds is plenty, plus one on leaving.
+    let last = 0
+    const send = () => {
+      last = Date.now()
+      void markPageSeen(pageId).catch(() => {})
+    }
+    const seen = () => {
+      if (Date.now() - last >= 20_000) send()
+    }
     const timer = setInterval(() => document.visibilityState === 'visible' && seen(), 45_000)
     const onHide = () => document.visibilityState === 'hidden' && seen()
     document.addEventListener('visibilitychange', onHide)
     return () => {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onHide)
-      seen()
+      send()
     }
   }, [pageId])
 
