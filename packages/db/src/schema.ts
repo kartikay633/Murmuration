@@ -260,6 +260,21 @@ export const reminders = pgTable(
   (t) => [index('reminders_user_idx').on(t.userId, t.dueAt), index('reminders_due_idx').on(t.dueAt)],
 )
 
+/** Moments in a page's history someone gave a name to ("Sent to legal", "Before the rewrite"). */
+export const pageVersions = pgTable(
+  'page_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    /** The version is the page as it was right after this event. */
+    eventId: bigint('event_id', { mode: 'number' }).notNull(),
+    name: text('name').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: created(),
+  },
+  (t) => [index('page_versions_page_idx').on(t.pageId, t.eventId)],
+)
+
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
 export type Page = typeof pages.$inferSelect

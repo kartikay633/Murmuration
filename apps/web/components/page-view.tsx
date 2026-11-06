@@ -190,6 +190,7 @@ export function PageView({
           pageId={pageId}
           title={node?.title ?? ''}
           liveEditor={editor}
+          canName={can(role, 'comment')}
           canRestore={canEdit}
           initialBlame={history.blame}
           onClose={closeHistory}

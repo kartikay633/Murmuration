@@ -7,6 +7,7 @@ import { isInk } from '@murmuration/shared'
 import { contentExtensions } from '@/lib/content-schema'
 import { PageHistory, pageJSON, withoutAuthors, type Author } from '@/lib/history'
 import { Icon } from './icons'
+import { NameVersion, useVersions, VersionList } from './versions'
 import { useWorkspace } from './workspace'
 
 /** Colours a run of text by the person who wrote it. Only used in the read-only history view. */
@@ -29,6 +30,7 @@ export function HistoryView({
   title,
   liveEditor,
   canRestore,
+  canName = false,
   initialBlame,
   onClose,
   onRestored,
@@ -40,6 +42,8 @@ export function HistoryView({
   title: string
   liveEditor: Editor | null
   canRestore: boolean
+  /** Can give names to versions (anyone who can comment). */
+  canName?: boolean
   initialBlame: boolean
   onClose(): void
 }) {
@@ -125,15 +129,30 @@ export function HistoryView({
   }, [onClose])
 
   const current = history?.events[index]
+  const { versions, refresh: refreshVersions } = useVersions(pageId)
+  // Jump to the last edit at or before a named version's event.
+  const pick = (eventId: number) => {
+    if (!history) return
+    let k = -1
+    history.events.forEach((e, i) => {
+      if (e.id <= eventId) k = i
+    })
+    if (k >= 0) {
+      setPlaying(false)
+      setIndex(k)
+    }
+  }
+  const namedHere = versions.find((v) => v.eventId === current?.id)
 
   return (
     <>
       <div className="scroll history-scroll">
         <div className="history-pill" role="status">
           <span>
-            {atNow ? 'Latest version' : current ? when(current.at) : 'Loading…'}
+            {namedHere ? namedHere.name : atNow ? 'Latest version' : current ? when(current.at) : 'Loading…'}
             {current && !atNow && <span className="t"> · version {index + 1} of {last + 1}</span>}
           </span>
+          {canName && !namedHere && <NameVersion pageId={pageId} eventId={current?.id} onSaved={refreshVersions} />}
           {!atNow && canRestore && (
             <button type="button" onClick={restore} disabled={!liveEditor}>
               Restore this version
@@ -145,6 +164,9 @@ export function HistoryView({
         </div>
         <div className={`page-wrap${stacked ? ' stacked' : ''}`}>
           <article className="page">
+            {stacked && (
+              <VersionList versions={versions} activeEventId={namedHere?.eventId} onPick={pick} onRemoved={refreshVersions} compact />
+            )}
             <h1 className="title-input" style={{ marginBottom: 18 }}>{title || 'Untitled'}</h1>
             {blame && people.length > 0 && (
               <div className="legend" aria-label="Who wrote what">
@@ -168,7 +190,11 @@ export function HistoryView({
             {history?.truncated && <p className="muted" style={{ fontSize: 12.5 }}>Showing the first 20,000 edits.</p>}
           </article>
           {/* Same columns as the live page, so switching views doesn't shift the text. */}
-          {!stacked && <aside className="rail" aria-hidden="true" />}
+          {!stacked && (
+            <aside className="rail">
+              <VersionList versions={versions} activeEventId={namedHere?.eventId} onPick={pick} onRemoved={refreshVersions} compact={false} />
+            </aside>
+          )}
         </div>
       </div>
       <Timeline
