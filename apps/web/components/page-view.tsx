@@ -24,6 +24,7 @@ import { SharePopover } from './share'
 import { setLocked } from '@/app/publish-actions'
 import { useImportedContent } from './import'
 import { Outline } from './outline'
+import { Presenter } from './present'
 import { TableBar } from './table-bar'
 import { TemplatePicker } from './template-picker'
 import { useWorkspace } from './workspace'
@@ -83,6 +84,8 @@ export function PageView({
   const [history, setHistory] = useState<{ blame: boolean } | null>(null)
   const closeHistory = useCallback(() => setHistory(null), [])
   const [labOpen, setLabOpen] = useState(false)
+  const [presenting, setPresenting] = useState(false)
+  const stopPresenting = useCallback(() => setPresenting(false), [])
   const closeLab = useCallback(() => setLabOpen(false), [])
   const client = useSyncClient()
   useFingerprintPresence(shared?.handle ?? null)
@@ -192,6 +195,7 @@ export function PageView({
           canDuplicate={canRename}
           locked={locked}
           onLock={isAdmin ? toggleLock : undefined}
+          onPresent={() => setPresenting(true)}
           onBlame={() => setHistory((h) => (h?.blame ? null : { blame: true }))}
           onLab={() => setLabOpen((o) => !o)}
           onCopyLink={() => {
@@ -217,6 +221,7 @@ export function PageView({
           stacked={stacked}
         />
       )}
+      {presenting && editor && <Presenter editor={editor} title={node?.title ?? ''} onClose={stopPresenting} />}
       <FollowPill person={followMode.following ? followMode.person : undefined} onStop={followMode.stop} />
       {!history && <Outline editor={editor} scrollEl={scrollRef} />}
       <div

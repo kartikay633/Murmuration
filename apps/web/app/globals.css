@@ -493,6 +493,21 @@ kbd {
 .publish-link { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 .publish-link .input { flex: 1; min-width: 0; font-size: 12.5px; }
 
+/* Present mode */
+.present { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); animation: fade .2s var(--ease); }
+.present-stage { flex: 1; min-height: 0; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 6vh 8vw; cursor: default; }
+.present-cover { text-align: center; }
+.present-cover h1 { margin: 0; font: 500 clamp(40px, 7vw, 84px)/1.05 var(--font-serif), serif; letter-spacing: -.02em; }
+.present-cover p { margin: 18px 0 0; color: var(--ink-3); font: 15px var(--font-sans), sans-serif; }
+.present-slide.ProseMirror { width: min(980px, 100%); min-height: 0; font-size: clamp(20px, 2.1vw, 28px); line-height: 1.55; white-space: normal; }
+.present-slide.ProseMirror h1 { font-size: 2.1em; }
+.present-slide.ProseMirror h2 { font-size: 1.6em; margin-bottom: .2em; }
+.present-slide.ProseMirror > * + * { margin-top: .7em; }
+.present-bar { display: flex; align-items: center; justify-content: center; gap: 6px; height: 56px; color: var(--ink-3); font: 13px var(--font-sans), sans-serif; opacity: .45; transition: opacity .2s; }
+.present-bar:hover, .present-bar:focus-within { opacity: 1; }
+.present-count { min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.present-progress { position: absolute; left: 0; top: 0; height: 3px; background: var(--ink); transition: width .25s var(--ease); }
+
 /* On this page */
 .outline { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 15; font-family: var(--font-sans), sans-serif; }
 .outline-marks { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 8px 6px; }

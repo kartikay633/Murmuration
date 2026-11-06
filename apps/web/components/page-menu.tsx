@@ -38,6 +38,7 @@ export function PageMenu({
   canDuplicate,
   locked = false,
   onLock,
+  onPresent,
   onBlame,
   onLab,
   onCopyLink,
@@ -50,6 +51,7 @@ export function PageMenu({
   locked?: boolean
   /** Admins only: lock or unlock the page. */
   onLock?(on: boolean): void
+  onPresent(): void
   onBlame(): void
   onLab(): void
   onCopyLink(): void
@@ -130,6 +132,9 @@ export function PageMenu({
               <Icon name="copy" /> Duplicate
             </button>
           )}
+          <button className="menu-item" role="menuitem" type="button" onClick={run(onPresent)} disabled={!editor}>
+            <Icon name="present" /> Present
+          </button>
           <button className="menu-item" role="menuitem" type="button" onClick={run(onBlame)}>
             <Icon name="blame" /> Show who wrote what
           </button>
