@@ -15,7 +15,7 @@ and no cross-origin configuration.
 3. When the first deploy finishes, open the service, copy its address (for example `https://murmuration.onrender.com`) and set **`ALLOWED_ORIGINS`** to it under *Environment*. This makes the sync server refuse sockets opened from other websites.
 4. Visit the site and click **Try the live demo**.
 
-If pushes to `main` don't start a new deploy, Render can't see the repository's commits: under *Settings → Build & Deploy*, reconnect the repository through Render's GitHub app (or use **Manual Deploy → Deploy latest commit**). Schema changes are applied by `npm run db:push` when the service starts, so keep migrations non-interactive (no new unique constraints on tables that already have rows).
+Pushes to `main` deploy automatically once Render's GitHub app can see the repository. If they don't, open *Settings → Build & Deploy → Source*, pick the repository from the **Git Provider** list (install the app on your account, limited to this repository, if it isn't listed), keep the runtime as **Node**, and save. **Manual Deploy → Deploy latest commit** works in the meantime. Schema changes are applied by `npm run db:push` when the service starts, so keep migrations non-interactive (no new unique constraints on tables that already have rows).
 
 Things to know about the free plan:
 
