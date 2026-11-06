@@ -8,7 +8,7 @@ Thousands of starlings move as one shape with no leader. Murmuration's pages wor
 
 **Live:** https://murmuration-t806.onrender.com (free hosting: the first visit after a quiet spell can take up to a minute to wake).
 
-Click **Try the demo** on the sign-in page: you get a private sandbox with sample pages, no sign-up. Then open **Lab** and invite the practice collaborators.
+Click **Try the demo** on the sign-in page: you get a private sandbox with sample pages, no sign-up. Then open the **⋯** menu, choose **Network Lab** and invite the practice collaborators.
 
 ## What works today
 
@@ -26,6 +26,24 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 - **Blame view.** Colour the text by who wrote it, at any point in the page's history. Authorship is exact to the character: it comes from the Yjs client that created each character, mapped to the person whose update introduced that client.
 - **Network Lab.** A panel on every page that puts the sync engine on screen: add latency to your own connection or cut it entirely, keep typing, and reconnect. It shows round-trip time, unsaved edits, traffic, and a fingerprint of every copy of the page (the server's, yours, and everyone else's). When they all match, the page has converged.
 - **Practice collaborators.** One click brings three scripted people onto the page over the real protocol (same tokens, same permission checks). They type at the top and bottom at once, read with moving cursors, select a phrase and leave a comment that @mentions you, so the whole product can be seen with one browser.
+
+### Writing and organising
+
+- **Blocks from the keyboard.** Type `/` for headings, to-do lists, tables, toggles, callouts, quotes, code and dividers; select text for bold, italic, highlight, links and comments.
+- **Page links and backlinks.** Type `[[` to link to another page. The sync server indexes links as pages are saved, so every page shows what links to it.
+- **Search everything** with Ctrl/⌘+K: Postgres full-text search over every page's text (mirrored from the live documents by the sync server), with highlighted excerpts, plus quick actions.
+- **Templates** for meeting notes, project briefs, weekly reviews, decision records and retros, and a shared **daily journal** (one page per day).
+- **Favorites, recents, subpages and a trash.** Archiving a page takes its subpages with it; restore them, or delete them for good along with their history.
+- **Markdown export, copy and print.** Pages convert to clean Markdown (including tables and to-dos) or print as a document.
+
+### Working together over time
+
+- **Catch-up.** Open a page and whatever other people wrote since your last visit is highlighted in their colour, with a one-line summary. Pages changed since you looked get a dot in the sidebar. The highlights come from the Yjs ids of the edits you missed, so they stay on the right words while people keep typing.
+- **Follow mode.** Click someone's avatar to follow their cursor as they write, even across pages.
+- **Named versions** in the page timeline ("Sent for review"), to jump back to later.
+- **Reminders** on any page, delivered to your inbox when due.
+- **Activity.** Who worked on which pages this week, grouped into work sessions.
+- **Publish to web.** A read-only public link for any page, rendered on the server from the live document, with private links and comments left out.
 
 ## Architecture
 
@@ -135,4 +153,6 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Page-tree CRDT for concurrent moves
 - [x] Multiple sync servers behind Redis, load tests
 - [x] One-click guest demo, origin checks, sign-in rate limiting
-- [ ] Public deployment ([guide](docs/DEPLOY.md): Render Blueprint, one service plus Postgres)
+- [x] Public deployment ([guide](docs/DEPLOY.md): Render Blueprint, one service plus Postgres)
+- [x] Blocks, search, templates, journal, trash, favorites, page links and backlinks
+- [x] Catch-up highlights, follow mode, named versions, reminders, activity, publish to web
