@@ -24,6 +24,14 @@ describe('word diff', () => {
     expect(diffStats(ops)).toEqual({ added: 12, removed: 6 })
   })
 
+  it('keeps one edit together instead of splitting it at a space', () => {
+    expect(diffText('many documents', 'any number of documents')).toEqual([
+      { type: 'del', text: 'many' },
+      { type: 'ins', text: 'any number of' },
+      { type: 'eq', text: ' documents' },
+    ])
+  })
+
   it('handles empty sides and identical texts', () => {
     expect(diffText('', 'new text')).toEqual([{ type: 'ins', text: 'new text' }])
     expect(diffText('old text', '')).toEqual([{ type: 'del', text: 'old text' }])

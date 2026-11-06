@@ -89,11 +89,44 @@ export function diffTokens(a: string[], b: string[]): DiffOp[] {
     ...a.slice(endA).map((token) => ({ type: 'eq' as const, token })),
   ]
   // Merge runs of the same kind.
-  const out: DiffOp[] = []
+  const merged: DiffOp[] = []
   for (const o of all) {
-    const last = out[out.length - 1]
+    const last = merged[merged.length - 1]
     if (last && last.type === o.type) last.text += o.token
-    else out.push({ type: o.type, text: o.token })
+    else merged.push({ type: o.type, text: o.token })
+  }
+  return joinEdits(merged)
+}
+
+/**
+ * Readability clean-up: a bare space between two changes is part of the edit,
+ * so "~~many~~ any ␣ number of" becomes "~~many~~ any number of". Each
+ * stretch of changes becomes one deletion followed by one insertion.
+ */
+function joinEdits(ops: DiffOp[]): DiffOp[] {
+  const out: DiffOp[] = []
+  let i = 0
+  while (i < ops.length) {
+    if (ops[i]!.type === 'eq') {
+      out.push(ops[i]!)
+      i++
+      continue
+    }
+    let before = ''
+    let after = ''
+    let j = i
+    for (; j < ops.length; j++) {
+      const o = ops[j]!
+      if (o.type === 'del') before += o.text
+      else if (o.type === 'ins') after += o.text
+      else if (/^\s+$/.test(o.text) && ops[j + 1] && ops[j + 1]!.type !== 'eq') {
+        before += o.text
+        after += o.text
+      } else break
+    }
+    if (before) out.push({ type: 'del', text: before })
+    if (after) out.push({ type: 'ins', text: after })
+    i = j
   }
   return out
 }

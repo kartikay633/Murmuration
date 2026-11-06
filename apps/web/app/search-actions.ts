@@ -63,7 +63,8 @@ export async function searchPages(workspaceId: string, query: string): Promise<S
     id: r.id,
     title: r.title,
     // Only show an excerpt when the body actually matched.
-    snippet: r.snippet.includes('\u0001') ? r.snippet.replace(/\s+/g, ' ').trim() : '',
+    // Blocks are separated by line breaks: keep them apart so a heading doesn't run into the next line.
+    snippet: r.snippet.includes('\u0001') ? r.snippet.replace(/\s*\n\s*/g, ' · ').replace(/\s+/g, ' ').trim() : '',
     updatedAt: r.updatedAt.toISOString(),
   }))
 }
