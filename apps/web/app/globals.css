@@ -496,9 +496,9 @@ kbd {
 
 /* Page properties */
 .props { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0 2px; font: 13px var(--font-sans), sans-serif; transition: opacity .15s var(--ease); }
-.props.empty { opacity: 0; }
-.page:hover .props.empty, .props.empty:focus-within { opacity: 1; }
-@media (hover: none) { .props.empty { opacity: 1; } }
+.props.is-empty { opacity: 0; }
+.page:hover .props.is-empty, .props.is-empty:focus-within { opacity: 1; }
+@media (hover: none) { .props.is-empty { opacity: 1; } }
 .prop { position: relative; display: inline-flex; }
 .prop-btn { display: inline-flex; align-items: center; height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); font: inherit; cursor: pointer; }
 .prop-btn:hover:not(:disabled) { background: var(--paper-3); }

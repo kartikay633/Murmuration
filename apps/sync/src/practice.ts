@@ -60,6 +60,15 @@ export async function runPractice(
     await Promise.all(bots.map((b) => waitSynced(b.handle)))
     const [juno, otto, wren] = bots as [Bot, Bot, Bot] // alphabetical: Juno, Otto, Wren
 
+    // Tidy up after any earlier visit, so repeat sessions don't pile up copies:
+    // remove the notes they left last time and Otto's earlier practice thread.
+    removeOwnNotes(juno)
+    await getDb()
+      .delete(commentThreads)
+      .where(and(eq(commentThreads.pageId, opts.pageId), eq(commentThreads.createdBy, otto.id)))
+      .catch((e) => ctx.log('could not clear the earlier practice thread', e))
+    await publish({ kind: 'comments', pageId: opts.pageId }).catch(() => {})
+
     // Arrive one at a time.
     for (const b of bots) {
       b.handle.awareness.setLocalStateField('user', presenceUser(b))
@@ -154,6 +163,22 @@ async function wander(b: Bot, steps: number) {
     setCursor(b, t, Math.floor(Math.random() * t.length))
     await sleep(jitter(1600))
   }
+}
+
+/** The notes practice collaborators leave; recognised so a later visit can replace them. */
+const NOTE = [/^Juno: quick summary for anyone skimming\./, /^Hi .{1,40}, Wren here\. Reading through this now/]
+
+/** Delete paragraphs left by an earlier practice visit (top level only). */
+function removeOwnNotes(b: Bot) {
+  const fragment = b.handle.doc.getXmlFragment('default')
+  b.handle.doc.transact(() => {
+    for (let i = fragment.length - 1; i >= 0; i--) {
+      const node = fragment.get(i)
+      if (!(node instanceof Y.XmlElement) || node.nodeName !== 'paragraph') continue
+      const text = node.toArray().map((c) => (c instanceof Y.XmlText ? c.toString() : '')).join('')
+      if (NOTE.some((re) => re.test(text))) fragment.delete(i, 1)
+    }
+  })
 }
 
 async function typeParagraph(b: Bot, where: 'start' | 'end', text: string) {

@@ -56,7 +56,7 @@ export function PageProps({ pageId, editable }: { pageId: string; editable: bool
   if (empty && !editable) return null
 
   return (
-    <div className={`props${empty ? ' empty' : ''}`} aria-label="Page properties">
+    <div className={`props${empty ? ' is-empty' : ''}`} aria-label="Page properties">
       <Picker
         label="Status"
         disabled={!editable}
