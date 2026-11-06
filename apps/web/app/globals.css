@@ -423,6 +423,7 @@ kbd {
 .ProseMirror a.page-link:hover { border-bottom-color: var(--ink); }
 .slash-empty { margin: 0; padding: 8px 10px; color: var(--ink-3); font: 13px var(--font-sans), sans-serif; }
 .backlinks { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font-family: var(--font-sans), sans-serif; }
+.subpages + .backlinks { margin-top: 20px; padding-top: 0; border-top: 0; }
 .backlinks-title { margin: 0 0 8px; font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
 .backlinks ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .backlinks a { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; color: var(--ink-2); font-size: 13px; text-decoration: none; }
@@ -517,6 +518,7 @@ kbd {
 }
 
 /* Command palette */
+.journal-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .search-item { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .nav-kbd { margin-left: auto; font: 500 11px var(--font-sans), sans-serif; color: var(--ink-3); background: transparent; border: 0; padding: 0; opacity: 0; transition: opacity .12s; }
 .search-item:hover .nav-kbd, .search-item:focus-visible .nav-kbd { opacity: 1; }

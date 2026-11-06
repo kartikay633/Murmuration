@@ -3,6 +3,8 @@ import type { JSONContent } from '@tiptap/core'
 /** Starting structures for common kinds of pages. */
 export interface Template {
   id: string
+  /** Used by a feature (like the journal) rather than offered on empty pages. */
+  internal?: boolean
   name: string
   hint: string
   title(): string
@@ -104,4 +106,18 @@ export const TEMPLATES: Template[] = [
   },
 ]
 
-export const templateById = (id: string | null | undefined) => TEMPLATES.find((t) => t.id === id) ?? null
+/** The daily log page the journal creates for each day. */
+export const DAILY: Template = {
+  id: 'daily',
+  name: 'Daily log',
+  hint: 'Focus, notes and what got done',
+  internal: true,
+  title: () => journalTitle(new Date()),
+  content: () => doc(h(2, 'Focus'), todo('', ''), h(2, 'Notes'), p(), h(2, 'Done'), bullets('')),
+}
+
+/** "Friday, 6 November 2026": how journal days are named. */
+export const journalTitle = (d: Date) =>
+  d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+export const templateById = (id: string | null | undefined) => [...TEMPLATES, DAILY].find((t) => t.id === id) ?? null

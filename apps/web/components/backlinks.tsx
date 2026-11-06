@@ -44,3 +44,26 @@ export function Backlinks({ pageId }: { pageId: string }) {
     </section>
   )
 }
+
+/** The pages directly under this one, in sidebar order. */
+export function Subpages({ pageId }: { pageId: string }) {
+  const { workspace } = useWorkspace()
+  const tree = useTree()
+  const kids = tree.children.get(pageId) ?? []
+  if (!kids.length) return null
+  return (
+    <section className="backlinks subpages" aria-label="Subpages">
+      <h2 className="backlinks-title">Subpages</h2>
+      <ul>
+        {kids.map((n) => (
+          <li key={n.id}>
+            <Link href={`/w/${workspace.id}/p/${n.id}`}>
+              <Icon name="page" />
+              {n.title || 'Untitled'}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

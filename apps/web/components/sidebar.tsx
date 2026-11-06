@@ -14,6 +14,7 @@ import { useTree, useTreeRole, type DropPlace } from '@/lib/tree'
 import { Avatar } from './avatar'
 import { Icon } from './icons'
 import { useDismiss } from './menu'
+import { JournalButton } from './journal'
 import { ThemeToggle } from './theme'
 import { TrashButton } from './trash'
 import { useWorkspace } from './workspace'
@@ -181,6 +182,7 @@ export function Sidebar() {
           <span className="label">Inbox</span>
           {unread > 0 && <span className="badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
         </Link>
+        <JournalButton />
         <FavoritesList activeId={activeId} unseen={unseen} />
         <div className="nav-label">
           Pages

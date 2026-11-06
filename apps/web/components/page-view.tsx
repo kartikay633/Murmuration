@@ -11,7 +11,7 @@ import { useTree, useTreeRole } from '@/lib/tree'
 import { useThreads } from '@/lib/comments'
 import { useFavorites } from '@/lib/favorites'
 import { Avatar } from './avatar'
-import { Backlinks } from './backlinks'
+import { Backlinks, Subpages } from './backlinks'
 import { CatchUpBanner } from './catch-up-banner'
 import { FollowPill, useFollow } from './follow'
 import { CommentLayer } from './comments'
@@ -234,11 +234,12 @@ export function PageView({
               <TemplatePicker
                 editor={editor}
                 ready={state.synced}
-                canEdit={canEdit}
+                canEdit={canEdit && !(tree.children.get(pageId)?.length)}
                 title={node?.title ?? ''}
                 rename={rename}
                 requested={template}
               />
+              <Subpages pageId={pageId} />
               <Backlinks pageId={pageId} />
             </>
           ) : (
