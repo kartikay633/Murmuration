@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Mark } from '@tiptap/core'
 import { EditorContent, useEditor, type Editor } from '@tiptap/react'
-import { isInk } from '@murmuration/shared'
+import { fragmentText, isInk } from '@murmuration/shared'
 import { contentExtensions } from '@/lib/content-schema'
 import { PageHistory, pageJSON, withoutAuthors, type Author } from '@/lib/history'
 import { Icon } from './icons'
 import { NameVersion, useVersions, VersionList } from './versions'
+import { VersionDiff } from './version-diff'
 import { useWorkspace } from './workspace'
 
 /** Colours a run of text by the person who wrote it. Only used in the read-only history view. */
@@ -144,6 +145,18 @@ export function HistoryView({
   }
   const namedHere = versions.find((v) => v.eventId === current?.id)
 
+  // "Compare with latest": the text of this version against the newest one.
+  const [compare, setCompare] = useState(false)
+  const texts = useMemo(() => {
+    if (!compare || !history || atNow) return null
+    const then = history.docAt(index)
+    const now = history.docAt(last)
+    const out = { before: fragmentText(then.getXmlFragment('default')), after: fragmentText(now.getXmlFragment('default')) }
+    then.destroy()
+    now.destroy()
+    return out
+  }, [compare, history, index, last, atNow])
+
   return (
     <>
       <div className="scroll history-scroll">
@@ -153,6 +166,11 @@ export function HistoryView({
             {current && !atNow && <span className="t"> · version {index + 1} of {last + 1}</span>}
           </span>
           {canName && !namedHere && <NameVersion pageId={pageId} eventId={current?.id} onSaved={refreshVersions} />}
+          {!atNow && (
+            <button type="button" aria-pressed={compare} onClick={() => setCompare((c) => !c)}>
+              {compare ? 'Show this version' : 'Compare with latest'}
+            </button>
+          )}
           {!atNow && canRestore && (
             <button type="button" onClick={restore} disabled={!liveEditor}>
               Restore this version
@@ -182,6 +200,8 @@ export function HistoryView({
               <p className="readonly-note">History couldn’t be loaded. Check your connection and try again.</p>
             ) : history && history.length === 0 ? (
               <p className="readonly-note">This page has no recorded edits yet.</p>
+            ) : texts ? (
+              <VersionDiff before={texts.before} after={texts.after} />
             ) : json ? (
               <EditorContent editor={editor} />
             ) : (
