@@ -489,6 +489,48 @@ kbd {
 .publish-link { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 .publish-link .input { flex: 1; min-width: 0; font-size: 12.5px; }
 
+/* On this page */
+.outline { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 15; font-family: var(--font-sans), sans-serif; }
+.outline-marks { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 8px 6px; }
+.outline-marks i { display: block; height: 2px; border-radius: 2px; background: var(--rule-2, var(--ink-4)); }
+.outline-marks i.on { background: var(--ink); }
+.outline-panel {
+  position: absolute; left: 0; top: 50%; transform: translate(-6px, -50%); width: 240px; max-height: 60vh; overflow-y: auto; padding: 10px 6px;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow);
+  opacity: 0; visibility: hidden; transition: opacity .14s var(--ease), transform .14s var(--ease), visibility .14s;
+}
+.outline:hover .outline-panel, .outline:focus-within .outline-panel { opacity: 1; visibility: visible; transform: translate(0, -50%); }
+.outline-title { padding: 0 8px 6px; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.outline ul { list-style: none; margin: 0; padding: 0; }
+.outline button { width: 100%; padding: 5px 8px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font: 13px/1.35 var(--font-sans), sans-serif; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline button:hover { background: var(--paper-3); color: var(--ink); }
+.outline button.on { color: var(--ink); font-weight: 600; }
+@media (max-width: 900px) { .outline { display: none; } }
+@media print { .outline { display: none; } }
+
+/* Focus mode: just the page */
+.app.focus { grid-template-columns: 0 minmax(0, 1fr); }
+.app.focus .sidebar { visibility: hidden; }
+.app.focus .topbar { opacity: 0; transition: opacity .2s var(--ease); }
+.app.focus .topbar:hover, .app.focus .topbar:focus-within { opacity: 1; }
+.app.focus .rail, .app.focus .outline { display: none; }
+.app.focus .page-wrap { grid-template-columns: minmax(0, 720px); }
+.focus-exit {
+  position: fixed; right: 18px; bottom: 18px; z-index: 30; height: 32px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--raised); color: var(--ink-3); font: 12.5px var(--font-sans), sans-serif; cursor: pointer; opacity: .55; transition: opacity .15s;
+}
+.focus-exit:hover { opacity: 1; color: var(--ink); }
+
+/* Keyboard shortcuts sheet */
+.keys { width: min(560px, 100%); padding: 22px 24px 18px; }
+.keys h2 { margin: 0 0 14px; font: 500 22px var(--font-serif), serif; }
+.keys dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; margin: 0; font: 13.5px var(--font-sans), sans-serif; }
+.keys dt { color: var(--ink-2); }
+.keys dd { margin: 0; display: flex; gap: 4px; justify-content: flex-end; }
+.keys kbd { min-width: 22px; padding: 2px 6px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 5px; background: var(--paper); font: 500 11.5px var(--font-sans), sans-serif; color: var(--ink); text-align: center; }
+.keys h3 { margin: 14px 0 8px; font: 500 12px var(--font-sans), sans-serif; color: var(--ink-3); }
+.keys section:first-of-type h3 { margin-top: 0; }
+
 /* Dropping Markdown files on the sidebar */
 .sidebar.drop-files { box-shadow: inset 0 0 0 2px var(--ink); background: color-mix(in srgb, var(--ink) 4%, var(--paper-2)); }
 

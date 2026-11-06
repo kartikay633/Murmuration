@@ -9,6 +9,7 @@ import { TEMPLATES } from '@/lib/templates'
 import { useTree } from '@/lib/tree'
 import { Icon, type IconName } from './icons'
 import { openImport } from './import'
+import { openShortcuts, toggleFocus } from './shortcuts'
 import { currentTheme, setTheme } from './theme'
 import { useWorkspace } from './workspace'
 
@@ -161,6 +162,8 @@ export function CommandPalette() {
         run: () => (setOpen(false), window.dispatchEvent(new CustomEvent('mm:new-page', { detail: { template: t.id } }))),
       })),
       { key: 'a:import', icon: 'download' as const, label: 'Import Markdown files', run: () => (setOpen(false), openImport()) },
+      { key: 'a:focus', icon: 'eye' as const, label: 'Focus mode', run: () => (setOpen(false), toggleFocus()) },
+      { key: 'a:keys', icon: 'command' as const, label: 'Keyboard shortcuts', run: () => (setOpen(false), openShortcuts()) },
       { key: 'a:inbox', icon: 'inbox' as const, label: 'Open inbox', run: () => go(`/w/${workspace.id}/inbox`) },
       {
         key: 'a:theme',

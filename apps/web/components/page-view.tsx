@@ -22,6 +22,7 @@ import { Editor } from './editor'
 import { Icon } from './icons'
 import { SharePopover } from './share'
 import { useImportedContent } from './import'
+import { Outline } from './outline'
 import { TableBar } from './table-bar'
 import { TemplatePicker } from './template-picker'
 import { useWorkspace } from './workspace'
@@ -201,6 +202,7 @@ export function PageView({
         />
       )}
       <FollowPill person={followMode.following ? followMode.person : undefined} onStop={followMode.stop} />
+      {!history && <Outline editor={editor} scrollEl={scrollRef} />}
       <div
         className={`scroll${followMode.following ? ' following' : ''}`}
         ref={scrollRef}

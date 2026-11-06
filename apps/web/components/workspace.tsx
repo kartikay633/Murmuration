@@ -8,6 +8,7 @@ import { SyncProvider } from '@/lib/sync'
 import { TreeProvider } from '@/lib/tree'
 import { CommandPalette } from './command-palette'
 import { ImportListener } from './import'
+import { ShortcutsSheet, useFocusMode } from './shortcuts'
 import { Sidebar } from './sidebar'
 
 export interface ToastAction {
@@ -48,6 +49,7 @@ export function WorkspaceShell({
   children: React.ReactNode
 }) {
   const [navOpen, setNavOpen] = useState(false)
+  const [focus, setFocus] = useFocusMode()
   const [message, setMessage] = useState<{ text: string; action?: ToastAction } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const toast = useCallback((text: string, action?: ToastAction) => {
@@ -62,7 +64,7 @@ export function WorkspaceShell({
     <Ctx.Provider value={{ user, workspace, workspaces, members, role: workspace.role, navOpen, setNavOpen, toast }}>
       <SyncProvider>
         <TreeProvider workspaceId={workspace.id}>
-          <div className={`app${navOpen ? ' nav-open' : ''}`}>
+          <div className={`app${navOpen ? ' nav-open' : ''}${focus ? ' focus' : ''}`}>
             <Sidebar />
             {navOpen && <div className="nav-scrim" aria-hidden="true" onClick={() => setNavOpen(false)} />}
             <main className="main" onClick={() => navOpen && setNavOpen(false)}>
@@ -70,6 +72,12 @@ export function WorkspaceShell({
             </main>
           </div>
           <CommandPalette />
+          <ShortcutsSheet />
+          {focus && (
+            <button type="button" className="focus-exit" onClick={() => setFocus(false)}>
+              Exit focus mode
+            </button>
+          )}
           <ImportListener />
         </TreeProvider>
       </SyncProvider>
