@@ -79,6 +79,7 @@ export function ShortcutsSheet() {
   const writing: [string, string[]][] = [
     ['Insert a block', ['/']],
     ['Link to another page', ['[', '[']],
+    ['Mention someone', ['@']],
     ['Bold, italic, underline', [mod, 'B / I / U']],
     ['Add a link to selected text', [mod, 'K']],
     ['Highlight', [mod, 'Shift', 'H']],

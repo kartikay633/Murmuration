@@ -19,7 +19,15 @@ const DEMO_PAGES: PageSpec[] = [
         ul: [
           'Open the ⋯ menu at the top right, choose Network Lab, and invite the practice collaborators. Three people join, type alongside you and mention you in a comment.',
           'In the Network Lab, switch your connection off, write a sentence, then switch it back on. Watch the copies merge and the fingerprints match.',
-          'Use the clock button at the top right to replay this page, or ⋯ → Show who wrote what to colour every character by its author.',
+          'Use the clock button at the top right to replay this page, compare any version with today, or ⋯ → Show who wrote what to colour every character by its author.',
+        ],
+      },
+      { h: 'Find your way around' },
+      {
+        ul: [
+          'Press Ctrl+K (⌘K on a Mac) to search every page and run any command.',
+          'Type / for headings, to-dos, tables and toggles, [[ to link another page, and @ to mention someone.',
+          'Give a page a status and an owner under its title, then drag it around on the Board.',
         ],
       },
       { h: 'Even better with two browsers' },
