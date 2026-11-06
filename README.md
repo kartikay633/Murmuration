@@ -29,7 +29,9 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 
 ### Writing and organising
 
-- **A home for each workspace**: the pages you were last on, what changed since you looked, your to-dos and upcoming reminders.
+- **A home for each workspace**: the pages you were last on, what changed since you looked, what's due soon, your to-dos and upcoming reminders.
+- **Page properties and a board.** Give any page a status, an owner and a due date, then drag pages between columns on the board. Properties live in the shared page tree, so everyone sees changes as they happen; due dates also show on the calendar.
+- **Your own templates.** Mark any page "Use as template" and it's offered on every new page and in the palette.
 - **Blocks from the keyboard.** Type `/` for headings, to-do lists, tables, toggles, callouts, quotes, code and dividers; select text for bold, italic, highlight, links and comments.
 - **Page links and backlinks.** Type `[[` to link to another page. The sync server indexes links as pages are saved, so every page shows what links to it.
 - **Search everything** with Ctrl/⌘+K: Postgres full-text search over every page's text (mirrored from the live documents by the sync server), with highlighted excerpts, plus quick actions.
@@ -166,3 +168,4 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] @mentions in pages, a live workspace task list, Markdown import, outline, focus mode
 - [x] Workspace home, settings and full export, page locking
 - [x] Version diff, read receipts, calendar, table sorting, present mode
+- [x] Page properties, a board, workspace templates
