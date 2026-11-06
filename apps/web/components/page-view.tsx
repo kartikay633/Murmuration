@@ -24,6 +24,7 @@ import { SharePopover } from './share'
 import { setLocked } from '@/app/publish-actions'
 import { useImportedContent } from './import'
 import { Outline } from './outline'
+import { PageProps } from './page-props'
 import { Presenter } from './present'
 import { TableBar } from './table-bar'
 import { TemplatePicker } from './template-picker'
@@ -240,6 +241,7 @@ export function PageView({
             onEnter={focusBody}
             autoFocus={isNew}
           />
+          <PageProps pageId={pageId} editable={canRename} />
           <hr className="page-rule" />
           {locked && (
             <p className="readonly-note locked-note">

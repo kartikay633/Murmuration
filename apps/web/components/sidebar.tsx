@@ -200,6 +200,15 @@ export function Sidebar() {
           <Icon name="check" />
           <span className="label">Tasks</span>
         </Link>
+        <Link
+          href={`/w/${workspace.id}/board`}
+          className={`item${pathname.endsWith('/board') ? ' active' : ''}`}
+          style={{ paddingLeft: 8, gap: 8 }}
+          onClick={() => setNavOpen(false)}
+        >
+          <Icon name="board" />
+          <span className="label">Board</span>
+        </Link>
         <JournalButton />
         <Link
           href={`/w/${workspace.id}/calendar`}

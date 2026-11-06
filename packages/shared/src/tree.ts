@@ -19,7 +19,19 @@ export interface TreeNode {
   archived: boolean
   /** When it was archived (ms), for the trash. */
   archivedAt?: number | null
+  /** Optional properties, shown under the title and on the board. */
+  status?: PageStatus | null
+  /** User id of whoever owns the page. */
+  owner?: string | null
+  /** Due date as YYYY-MM-DD. */
+  due?: string | null
 }
+
+export const PAGE_STATUSES = ['todo', 'doing', 'done'] as const
+export type PageStatus = (typeof PAGE_STATUSES)[number]
+export const STATUS_LABEL: Record<PageStatus, string> = { todo: 'Not started', doing: 'In progress', done: 'Done' }
+export const isStatus = (v: unknown): v is PageStatus => typeof v === 'string' && (PAGE_STATUSES as readonly string[]).includes(v)
+export const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
 
 export const TREE_PAGES = 'pages'
 

@@ -11,7 +11,10 @@ import {
   TREE_MOVES,
   TREE_PAGES,
   treeDoc,
+  isDay,
+  isStatus,
   type MoveOp,
+  type PageStatus,
   type TreeNode,
 } from '@murmuration/shared'
 import { useDocState, useSharedDoc, type SharedDoc } from './sync'
@@ -24,6 +27,8 @@ interface TreeApi {
   children: Map<string | null, TreeNode[]>
   add(node: { id: string; title: string; parentId: string | null; createdBy: string }): void
   rename(id: string, title: string): void
+  /** Set or clear page properties (null clears). */
+  setProps(id: string, props: { status?: PageStatus | null; owner?: string | null; due?: string | null }): void
   archive(id: string): void
   unarchive(id: string): void
   /** Remove pages from the tree for good (after they were deleted on the server). */
@@ -57,6 +62,10 @@ function readNodes(map: Y.Map<Y.Map<unknown>>, log: Y.Array<MoveOp>): Map<string
       createdBy: String(m.get('createdBy') ?? ''),
       archived: Boolean(m.get('archived')),
       archivedAt: (m.get('archivedAt') as number | null) ?? null,
+      // Properties come from other people's browsers: keep only well-formed values.
+      status: isStatus(m.get('status')) ? (m.get('status') as PageStatus) : null,
+      owner: typeof m.get('owner') === 'string' ? (m.get('owner') as string) : null,
+      due: isDay(m.get('due')) ? (m.get('due') as string) : null,
     })
   })
   return out
@@ -153,6 +162,17 @@ export function TreeProvider({ workspaceId, children }: { workspaceId: string; c
           node.set('createdBy', createdBy)
           node.set('archived', false)
           pushMove(id, parentId, position)
+        })
+      },
+      setProps(id, props) {
+        const n = map()?.get(id)
+        if (!n || !shared) return
+        shared.doc.transact(() => {
+          for (const [k, v] of Object.entries(props)) {
+            if (v === undefined) continue
+            if (v === null) n.delete(k)
+            else n.set(k, v)
+          }
         })
       },
       rename(id, title) {
