@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { isInTrash, type TreeNode } from '@murmuration/shared'
 import { monthReminders } from '@/app/reminder-actions'
 import { Icon } from '@/components/icons'
 import { useJournal } from '@/components/journal'
@@ -10,6 +11,7 @@ import { useTree } from '@/lib/tree'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 /** Monday-first weeks covering the month. */
 function grid(month: Date): Date[] {
@@ -30,6 +32,15 @@ export function CalendarView() {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [reminders, setReminders] = useState<{ pageId: string; title: string; dueAt: string }[]>([])
   const days = useMemo(() => grid(month), [month])
+  // Pages with a due date, by day.
+  const dueByDay = useMemo(() => {
+    const m = new Map<string, TreeNode[]>()
+    for (const n of tree.nodes.values()) {
+      if (!n.due || isInTrash(tree.nodes, n.id)) continue
+      m.set(n.due, [...(m.get(n.due) ?? []), n])
+    }
+    return m
+  }, [tree.nodes])
   const today = new Date()
 
   useEffect(() => {
@@ -83,6 +94,7 @@ export function CalendarView() {
             {days.map((d) => {
               const entry = entryFor(d)
               const due = reminders.filter((r) => sameDay(new Date(r.dueAt), d))
+              const pagesDue = dueByDay.get(dayKey(d)) ?? []
               const other = d.getMonth() !== month.getMonth()
               return (
                 <div key={d.toISOString()} role="gridcell" className={`cal-day${other ? ' other' : ''}${sameDay(d, today) ? ' today' : ''}`}>
@@ -101,6 +113,12 @@ export function CalendarView() {
                       Daily log
                     </Link>
                   )}
+                  {pagesDue.map((n) => (
+                    <Link key={n.id} href={`/w/${workspace.id}/p/${n.id}`} className={`cal-chip due${n.status === 'done' ? ' done' : ''}`} title="Due">
+                      <Icon name="flag" size={12} />
+                      {n.title || 'Untitled'}
+                    </Link>
+                  ))}
                   {due.map((r, i) => (
                     <Link key={i} href={`/w/${workspace.id}/p/${r.pageId}`} className="cal-chip reminder" title={`Reminder at ${new Date(r.dueAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}>
                       <Icon name="bell" size={12} />

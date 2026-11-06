@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { isInTrash } from '@murmuration/shared'
 import type { HomeData } from '@/app/home-actions'
 import { Icon } from '@/components/icons'
 import { openPalette } from '@/components/command-palette'
+import { dueLabel, isOverdue } from '@/components/page-props'
 import { useWorkspace } from '@/components/workspace'
 import { timeAgo } from '@/lib/comments'
 import { useTree } from '@/lib/tree'
@@ -38,7 +40,16 @@ export function HomeView({ data }: { data: HomeData }) {
   const [hello, setHello] = useState('Welcome back')
   useEffect(() => setHello(greeting(new Date().getHours())), [])
   const first = user.name.split(' ')[0]
-  const nothing = !data.recent.length && !data.changed.length && !data.tasks.length && !data.reminders.length
+  // Your unfinished pages with a due date in the next two weeks (or overdue).
+  const dueSoon = useMemo(() => {
+    const d = new Date(Date.now() + 14 * 86400_000)
+    const limit = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return [...tree.nodes.values()]
+      .filter((n) => n.owner === user.id && n.due && n.status !== 'done' && n.due <= limit && !isInTrash(tree.nodes, n.id))
+      .sort((a, b) => a.due!.localeCompare(b.due!))
+      .slice(0, 6)
+  }, [tree.nodes, user.id])
+  const nothing = !data.recent.length && !data.changed.length && !data.tasks.length && !data.reminders.length && !dueSoon.length
 
   return (
     <>
@@ -93,6 +104,25 @@ export function HomeView({ data }: { data: HomeData }) {
                       <span className="unseen-dot" aria-hidden="true" />
                       <span className="grow">{title(p.id, p.title)}</span>
                       <span className="home-meta">{ago(p.updatedAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {dueSoon.length > 0 && (
+            <section className="home-section">
+              <h2>
+                Due soon <Link href={`/w/${workspace.id}/board`} className="home-more">Board</Link>
+              </h2>
+              <ul className="home-list">
+                {dueSoon.map((n) => (
+                  <li key={n.id}>
+                    <Link href={`/w/${workspace.id}/p/${n.id}`}>
+                      <Icon name="flag" />
+                      <span className="grow">{n.title || 'Untitled'}</span>
+                      <span className={`home-meta${isOverdue(n.due, n.status) ? ' overdue' : ''}`}>{dueLabel(n.due!)}</span>
                     </Link>
                   </li>
                 ))}
