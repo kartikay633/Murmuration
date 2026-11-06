@@ -183,6 +183,15 @@ export function Sidebar() {
           {unread > 0 && <span className="badge" aria-label={`${unread} unread`}>{unread > 99 ? '99+' : unread}</span>}
         </Link>
         <JournalButton />
+        <Link
+          href={`/w/${workspace.id}/activity`}
+          className={`item${pathname.endsWith('/activity') ? ' active' : ''}`}
+          style={{ paddingLeft: 8, gap: 8 }}
+          onClick={() => setNavOpen(false)}
+        >
+          <Icon name="pulse" />
+          <span className="label">Activity</span>
+        </Link>
         <FavoritesList activeId={activeId} unseen={unseen} />
         <div className="nav-label">
           Pages
