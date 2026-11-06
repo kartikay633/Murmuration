@@ -33,7 +33,8 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 - **Blocks from the keyboard.** Type `/` for headings, to-do lists, tables, toggles, callouts, quotes, code and dividers; select text for bold, italic, highlight, links and comments.
 - **Page links and backlinks.** Type `[[` to link to another page. The sync server indexes links as pages are saved, so every page shows what links to it.
 - **Search everything** with Ctrl/⌘+K: Postgres full-text search over every page's text (mirrored from the live documents by the sync server), with highlighted excerpts, plus quick actions.
-- **Templates** for meeting notes, project briefs, weekly reviews, decision records and retros, and a shared **daily journal** (one page per day).
+- **Templates** for meeting notes, project briefs, weekly reviews, decision records and retros, and a shared **daily journal** (one page per day), with a **calendar** of daily logs and reminders to plan any day ahead.
+- **Tables you can sort** by any column, and **Present mode**: any page becomes full-screen slides, one section per slide.
 - **Favorites, recents, subpages and a trash.** Archiving a page takes its subpages with it; restore them, or delete them for good along with their history.
 - **Markdown in and out.** Drop `.md` files on the sidebar to import them as pages; export any page as clean Markdown (tables and to-dos included), copy it, or print it.
 - **Writing comfort.** An outline of long pages that tracks where you are, a focus mode that hides everything but the page (Ctrl/⌘+Shift+F), and a shortcut sheet behind `?`.
@@ -43,7 +44,8 @@ Click **Try the demo** on the sign-in page: you get a private sandbox with sampl
 - **Catch-up.** Open a page and whatever other people wrote since your last visit is highlighted in their colour, with a one-line summary. Pages changed since you looked get a dot in the sidebar. The highlights come from the Yjs ids of the edits you missed, so they stay on the right words while people keep typing.
 - **Follow mode.** Click someone's avatar to follow their cursor as they write, even across pages.
 - **@mentions and tasks.** Type `@` in a page to mention a teammate: they get an inbox notice. A to-do that mentions someone is assigned to them, and the **Tasks** view lists every open to-do in the workspace (or just yours). Tick them off right there: the view opens each page's live document, so the change syncs to everyone with the page open.
-- **Named versions** in the page timeline ("Sent for review"), to jump back to later.
+- **Named versions** in the page timeline ("Sent for review"), to jump back to later, and **compare any version with the latest**: a word-level diff (Myers' O(ND) algorithm, implemented in `packages/shared`).
+- **Read receipts.** See which teammates have read a page's latest version, an earlier one, or haven't opened it.
 - **Reminders** on any page, delivered to your inbox when due.
 - **Activity.** Who worked on which pages this week, grouped into work sessions.
 - **Publish to web.** A read-only public link for any page, rendered on the server from the live document, with private links and comments left out.
@@ -163,3 +165,4 @@ The sync-server tests run real clients against a real server over WebSockets and
 - [x] Catch-up highlights, follow mode, named versions, reminders, activity, publish to web
 - [x] @mentions in pages, a live workspace task list, Markdown import, outline, focus mode
 - [x] Workspace home, settings and full export, page locking
+- [x] Version diff, read receipts, calendar, table sorting, present mode
