@@ -721,6 +721,14 @@ kbd {
 .trash-row:hover .trash-actions, .trash-row:focus-within .trash-actions { opacity: 1; }
 @media (hover: none) { .trash-actions { opacity: 1; } }
 
+/* Read receipts in the page menu */
+.menu-seen { margin: 4px -4px 0; padding: 8px 12px; border-top: 1px solid var(--rule); font: 12.5px/1.45 var(--font-sans), sans-serif; color: var(--ink-2); display: grid; gap: 4px; }
+.seen-row { display: flex; align-items: center; gap: 8px; }
+.seen-avs { display: inline-flex; flex: none; }
+.seen-avs > * + * { margin-left: -6px; box-shadow: 0 0 0 2px var(--raised); }
+.muted-row { color: var(--ink-3); }
+.menu-seen + .menu-foot { margin-top: 0; }
+
 /* Menu footer (page stats) */
 .menu-foot { margin: 4px -4px -4px; padding: 8px 12px; border-top: 1px solid var(--rule); color: var(--ink-3); font: 12px var(--font-sans), sans-serif; }
 

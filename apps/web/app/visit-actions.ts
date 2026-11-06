@@ -113,3 +113,35 @@ export async function unseenPages(workspaceId: string): Promise<string[]> {
     )
   return rows.map((r) => r.id)
 }
+
+export interface SeenBy {
+  latest: { id: string; name: string; ink: Ink }[]
+  earlier: { id: string; name: string; ink: Ink }[]
+  notYet: { id: string; name: string; ink: Ink }[]
+}
+
+/**
+ * Read receipts for a page: which teammates have seen its latest version,
+ * an earlier one, or haven't opened it. You aren't listed.
+ */
+export async function seenBy(pageId: string): Promise<SeenBy | null> {
+  const user = await requireUser()
+  const access = await pageRole(user.id, pageId)
+  if (!access || !can(access.role, 'view')) return null
+  const db = getDb()
+  const latest = await latestEventId(pageId)
+  const people = await db
+    .select({ id: users.id, name: users.name, ink: users.ink, last: pageVisits.lastEventId })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .leftJoin(pageVisits, and(eq(pageVisits.userId, users.id), eq(pageVisits.pageId, pageId)))
+    .where(and(eq(memberships.workspaceId, access.workspaceId), eq(users.isBot, false), sql`${users.id} <> ${user.id}`))
+  const out: SeenBy = { latest: [], earlier: [], notYet: [] }
+  for (const p of people) {
+    const who = { id: p.id, name: p.name, ink: (isInk(p.ink) ? p.ink : 'ochre') as Ink }
+    if (p.last == null) out.notYet.push(who)
+    else if (p.last >= latest) out.latest.push(who)
+    else out.earlier.push(who)
+  }
+  return out
+}

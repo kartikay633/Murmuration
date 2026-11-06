@@ -1,12 +1,14 @@
 'use client'
 
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Editor } from '@tiptap/react'
 import type * as Y from 'yjs'
 import { fragmentMarkdown } from '@murmuration/shared'
 import { duplicatePage } from '@/app/actions'
+import { seenBy, type SeenBy } from '@/app/visit-actions'
 import { useTree } from '@/lib/tree'
+import { Avatar } from './avatar'
 import { Icon } from './icons'
 import { useDismiss } from './menu'
 import { RemindMenu } from './remind'
@@ -159,6 +161,7 @@ export function PageMenu({
               <span className="menu-hint">Simulate latency and going offline</span>
             </span>
           </button>
+          <SeenLine pageId={pageId} />
           {s && (
             <div className="menu-foot">
               {s.words.toLocaleString()} {s.words === 1 ? 'word' : 'words'} · {s.minutes} min read
@@ -166,6 +169,36 @@ export function PageMenu({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** "Seen by Ana and Rohan · Mei hasn't opened it": read receipts in the menu. */
+function SeenLine({ pageId }: { pageId: string }) {
+  const [data, setData] = useState<SeenBy | null>(null)
+  useEffect(() => {
+    let live = true
+    void seenBy(pageId).then((d) => live && setData(d))
+    return () => {
+      live = false
+    }
+  }, [pageId])
+  if (!data || data.latest.length + data.earlier.length + data.notYet.length === 0) return null
+  const first = (list: { name: string }[]) => list.map((p) => p.name.split(' ')[0]).join(', ')
+  return (
+    <div className="menu-seen">
+      {data.latest.length > 0 && (
+        <div className="seen-row">
+          <span className="seen-avs" aria-hidden="true">
+            {data.latest.slice(0, 4).map((p) => (
+              <Avatar key={p.id} name={p.name} ink={p.ink} />
+            ))}
+          </span>
+          <span>Seen the latest: {first(data.latest)}</span>
+        </div>
+      )}
+      {data.earlier.length > 0 && <div className="seen-row muted-row">Seen an earlier version: {first(data.earlier)}</div>}
+      {data.notYet.length > 0 && <div className="seen-row muted-row">Not opened yet: {first(data.notYet)}</div>}
     </div>
   )
 }
