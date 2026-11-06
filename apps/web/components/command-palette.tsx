@@ -164,6 +164,7 @@ export function CommandPalette() {
       { key: 'a:import', icon: 'download' as const, label: 'Import Markdown files', run: () => (setOpen(false), openImport()) },
       { key: 'a:focus', icon: 'eye' as const, label: 'Focus mode', run: () => (setOpen(false), toggleFocus()) },
       { key: 'a:keys', icon: 'command' as const, label: 'Keyboard shortcuts', run: () => (setOpen(false), openShortcuts()) },
+      { key: 'a:settings', icon: 'settings' as const, label: 'Workspace settings', run: () => go(`/w/${workspace.id}/settings`) },
       { key: 'a:inbox', icon: 'inbox' as const, label: 'Open inbox', run: () => go(`/w/${workspace.id}/inbox`) },
       {
         key: 'a:theme',

@@ -585,6 +585,21 @@ kbd {
 .public-foot a { color: var(--ink-2); }
 @media (max-width: 720px) { .public-page { padding-top: 32px; } .public-title { font-size: 34px; } }
 
+/* Workspace settings */
+.set-section { padding: 22px 0; border-top: 1px solid var(--rule); }
+.set-section:first-of-type { border-top: 0; padding-top: 4px; }
+.set-section h2 { margin: 0 0 10px; font: 600 14px var(--font-sans), sans-serif; }
+.set-hint { margin: -4px 0 12px; color: var(--ink-3); font: 13px/1.5 var(--font-sans), sans-serif; }
+.set-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.set-row .input { flex: 1; min-width: 200px; }
+.set-people { list-style: none; margin: 12px 0 0; padding: 0; }
+.set-people li { display: flex; align-items: center; gap: 12px; padding: 9px 0; font-family: var(--font-sans), sans-serif; }
+.set-people li + li { border-top: 1px solid var(--rule); }
+.set-people .n { display: block; font-size: 14px; }
+.set-people .e { display: block; font-size: 12.5px; color: var(--ink-3); }
+.set-role { font-size: 13px; color: var(--ink-3); }
+.settings a.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+
 /* Tasks */
 .task-filters { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 22px; }
 .seg { display: inline-flex; padding: 3px; border: 1px solid var(--rule); border-radius: 9px; background: var(--paper-2); }

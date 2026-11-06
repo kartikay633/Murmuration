@@ -525,6 +525,9 @@ function WorkspaceSwitcher() {
             </Link>
           ))}
           <div className="menu-sep" />
+          <Link href={`/w/${workspace.id}/settings`} className="menu-item" role="menuitem" onClick={close}>
+            <Icon name="settings" /> Settings and people
+          </Link>
           {creating ? (
             <form
               className="menu-form"
