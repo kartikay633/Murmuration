@@ -42,8 +42,9 @@ export function useFocusMode() {
 function Keys({ keys }: { keys: string[] }) {
   return (
     <dd>
-      {keys.map((k) => (
-        <kbd key={k}>{k}</kbd>
+      {/* A key can repeat ("[ ["), so position is the identity. */}
+      {keys.map((k, i) => (
+        <kbd key={i}>{k}</kbd>
       ))}
     </dd>
   )
