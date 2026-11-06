@@ -2,20 +2,15 @@
 
 import { useEffect } from 'react'
 import { EditorContent, useEditor, type Editor as TiptapEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { Placeholder } from '@tiptap/extensions'
-import { TaskItem, TaskList } from '@tiptap/extension-list'
-import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
-import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
-import Highlight from '@tiptap/extension-highlight'
 import type * as Y from 'yjs'
 import type { DocHandle } from '@murmuration/client'
 import { presenceUser, readPresenceUser } from '@murmuration/shared'
 import type { CurrentUser } from '@/lib/auth'
-import { Callout } from '@/lib/callout'
 import { CatchUp } from '@/lib/catch-up'
+import { contentExtensions } from '@/lib/content-schema'
 import { CommentAnchors } from '@/lib/comment-anchors'
 import { PageLinkKeys, PageLinkMenu, usePageLinkMenu } from './page-link-menu'
 import { SlashKeys, SlashMenu, useSlashMenu } from './slash-menu'
@@ -60,31 +55,12 @@ export function Editor({
       immediatelyRender: false,
       editable,
       extensions: [
-        // Collaboration brings its own history, scoped to this user's edits:
-        // undo never takes back what someone else typed.
-        StarterKit.configure({
-          undoRedo: false,
-          heading: { levels: [1, 2, 3] },
-          // Clicking a link while writing places the cursor; Ctrl/Cmd-click (or read-only) opens it.
-          link: { openOnClick: false, autolink: true, defaultProtocol: 'https', HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: '_blank' } },
-        }),
+        ...contentExtensions(),
         Placeholder.configure({
           // Empty page: an invitation. Empty line you're on: how to insert blocks.
           placeholder: ({ editor: e, node }) =>
             e.isEmpty ? 'Start writing, or press / for headings, lists and more…' : node.type.name === 'paragraph' ? 'Press / for blocks' : '',
         }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-        Table.configure({ resizable: false }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        // Open/closed is each reader's own choice, not part of the shared page.
-        Details.configure({ persist: false, HTMLAttributes: { class: 'toggle-block' } }),
-        DetailsSummary,
-        DetailsContent,
-        Callout,
-        Highlight,
         SlashKeys.configure({ onKey: slash.onKey }),
         PageLinkKeys.configure({ onKey: pageLink.onKey }),
         Collaboration.configure({ document: doc }),

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Mark } from '@tiptap/core'
 import { EditorContent, useEditor, type Editor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import { isInk } from '@murmuration/shared'
+import { contentExtensions } from '@/lib/content-schema'
 import { PageHistory, pageJSON, withoutAuthors, type Author } from '@/lib/history'
 import { Icon } from './icons'
 import { useWorkspace } from './workspace'
@@ -78,7 +78,7 @@ export function HistoryView({
   const editor = useEditor({
     immediatelyRender: false,
     editable: false,
-    extensions: [StarterKit.configure({ undoRedo: false, heading: { levels: [1, 2, 3] } }), AuthorMark],
+    extensions: [...contentExtensions(), AuthorMark],
     editorProps: { attributes: { 'aria-label': 'Page as it was at this point in its history' } },
   })
   useEffect(() => {
