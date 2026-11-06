@@ -1,6 +1,6 @@
 'use server'
 
-import { and, asc, eq, getDb, gt, isNull, pageRole, publish, reminders } from '@murmuration/db'
+import { and, asc, eq, getDb, gt, isNull, lte, pageRole, pages, publish, reminders } from '@murmuration/db'
 import { can } from '@murmuration/shared'
 import { requireUser } from '@/lib/auth'
 
@@ -40,4 +40,20 @@ export async function cancelReminder(id: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return
   await getDb().delete(reminders).where(and(eq(reminders.id, id), eq(reminders.userId, user.id)))
   await publish({ kind: 'inbox', userIds: [user.id] })
+}
+
+/** Your reminders in a workspace between two instants (for the calendar). */
+export async function monthReminders(workspaceId: string, from: string, to: string): Promise<{ pageId: string; title: string; dueAt: string }[]> {
+  const user = await requireUser()
+  const a = new Date(from)
+  const b = new Date(to)
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b.getTime() - a.getTime() > 62 * 86400_000) return []
+  const rows = await getDb()
+    .select({ pageId: pages.id, title: pages.title, dueAt: reminders.dueAt })
+    .from(reminders)
+    .innerJoin(pages, and(eq(pages.id, reminders.pageId), isNull(pages.archivedAt)))
+    .where(and(eq(reminders.userId, user.id), eq(reminders.workspaceId, workspaceId), gt(reminders.dueAt, a), lte(reminders.dueAt, b)))
+    .orderBy(asc(reminders.dueAt))
+    .limit(200)
+  return rows.map((r) => ({ pageId: r.pageId, title: r.title, dueAt: r.dueAt.toISOString() }))
 }

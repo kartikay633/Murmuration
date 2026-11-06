@@ -202,6 +202,15 @@ export function Sidebar() {
         </Link>
         <JournalButton />
         <Link
+          href={`/w/${workspace.id}/calendar`}
+          className={`item${pathname.endsWith('/calendar') ? ' active' : ''}`}
+          style={{ paddingLeft: 8, gap: 8 }}
+          onClick={() => setNavOpen(false)}
+        >
+          <Icon name="grid" />
+          <span className="label">Calendar</span>
+        </Link>
+        <Link
           href={`/w/${workspace.id}/activity`}
           className={`item${pathname.endsWith('/activity') ? ' active' : ''}`}
           style={{ paddingLeft: 8, gap: 8 }}

@@ -595,6 +595,31 @@ kbd {
 .public-foot a { color: var(--ink-2); }
 @media (max-width: 720px) { .public-page { padding-top: 32px; } .public-title { font-size: 34px; } }
 
+/* Calendar */
+.cal { max-width: 1040px; margin: 0 auto; padding: 36px 32px 96px; font-family: var(--font-sans), sans-serif; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.cal-head h1 { margin: 0; font: 500 34px/1.1 var(--font-serif), serif; letter-spacing: -.015em; }
+.cal-nav { display: flex; align-items: center; gap: 4px; }
+.i.flip { transform: rotate(180deg); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+.cal-dow { padding: 8px 10px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 12px; font-weight: 500; color: var(--ink-3); background: var(--paper-2); }
+.cal-day { min-height: 108px; padding: 6px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--paper); }
+.cal-day.other { background: var(--paper-2); }
+.cal-day.other .cal-num { color: var(--ink-4, var(--ink-3)); }
+.cal-num { align-self: flex-start; min-width: 26px; height: 26px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font: 500 12.5px var(--font-sans), sans-serif; cursor: pointer; }
+.cal-num:hover { background: var(--paper-3); color: var(--ink); }
+.cal-day.today .cal-num { background: var(--ink); color: var(--paper); }
+.cal-chip { display: flex; align-items: center; gap: 5px; min-width: 0; padding: 3px 7px; border-radius: 6px; background: var(--paper-3); color: var(--ink); font-size: 12px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-chip:hover { background: var(--rule); }
+.cal-chip.reminder { background: color-mix(in srgb, var(--ink-ochre) 16%, var(--paper)); }
+.cal-chip .i { flex: none; color: var(--ink-3); }
+@media (max-width: 720px) {
+  .cal { padding: 20px 12px 80px; }
+  .cal-day { min-height: 64px; padding: 3px; }
+  .cal-chip { font-size: 0; padding: 3px; justify-content: center; }
+  .cal-chip .i { margin: 0; }
+}
+
 /* Workspace home */
 .home-section { margin-top: 30px; }
 .home-section h2 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; font: 500 12.5px var(--font-sans), sans-serif; color: var(--ink-3); }
