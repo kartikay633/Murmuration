@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useParams } from 'next/navigation'
+import { loadPageContent, useWorkspaceTemplates } from '@/lib/page-templates'
+import { useSyncClient } from '@/lib/sync'
 import { TEMPLATES, templateById, type Template } from '@/lib/templates'
+import { useWorkspace } from './workspace'
 
 /** Fill an empty page from a template and put the cursor in its first blank line. */
 export function applyTemplate(editor: Editor, t: Template, rename: (title: string) => void, currentTitle: string) {
@@ -53,6 +57,10 @@ export function TemplatePicker({
   requested: string | null
 }) {
   const empty = useIsEmpty(editor)
+  const client = useSyncClient()
+  const { toast } = useWorkspace()
+  const params = useParams<{ pageId?: string }>()
+  const own = useWorkspaceTemplates(params.pageId)
   const used = useRef(false)
 
   useEffect(() => {
@@ -66,10 +74,24 @@ export function TemplatePicker({
   }, [requested, editor, ready, canEdit, rename, title])
 
   if (!editor || !ready || !canEdit || !empty || requested) return null
+  const useOwn = async (id: string, name: string) => {
+    if (!client) return
+    const json = await loadPageContent(client, id)
+    if (!json) return toast('That template couldn’t be loaded. Try again in a moment.')
+    if (!editor.isEmpty) return
+    editor.commands.setContent(json)
+    if (!title.trim()) rename(name)
+    editor.commands.focus('end')
+  }
   return (
     <div className="tpl" role="group" aria-label="Start from a template">
       <span className="tpl-label">Start from</span>
-      {TEMPLATES.map((t) => (
+      {own.map((t) => (
+        <button key={t.id} type="button" className="tpl-chip own" title="A template from this workspace" onClick={() => void useOwn(t.id, t.title)}>
+          {t.title || 'Untitled'}
+        </button>
+      ))}
+      {TEMPLATES.filter((t) => !t.internal).map((t) => (
         <button key={t.id} type="button" className="tpl-chip" title={t.hint} onClick={() => applyTemplate(editor, t, rename, title)}>
           {t.name}
         </button>

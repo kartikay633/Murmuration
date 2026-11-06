@@ -3,7 +3,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isInTrash } from '@murmuration/shared'
+import { duplicatePage } from '@/app/actions'
 import { recentPages } from '@/app/favorite-actions'
+import { useWorkspaceTemplates } from '@/lib/page-templates'
 import { searchPages, type SearchHit } from '@/app/search-actions'
 import { TEMPLATES } from '@/lib/templates'
 import { useTree } from '@/lib/tree'
@@ -48,7 +50,8 @@ function Snippet({ text }: { text: string }) {
 }
 
 export function CommandPalette() {
-  const { workspace, workspaces, setNavOpen } = useWorkspace()
+  const { workspace, workspaces, setNavOpen, user } = useWorkspace()
+  const own = useWorkspaceTemplates()
   const tree = useTree()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -165,6 +168,19 @@ export function CommandPalette() {
       { key: 'a:focus', icon: 'eye' as const, label: 'Focus mode', run: () => (setOpen(false), toggleFocus()) },
       { key: 'a:keys', icon: 'command' as const, label: 'Keyboard shortcuts', run: () => (setOpen(false), openShortcuts()) },
       { key: 'a:settings', icon: 'settings' as const, label: 'Workspace settings', run: () => go(`/w/${workspace.id}/settings`) },
+      ...own.map((t) => ({
+        key: `t:own:${t.id}`,
+        icon: 'layers' as const,
+        label: `New ${t.title || 'Untitled'} page`,
+        run: () => {
+          setOpen(false)
+          void duplicatePage(t.id, { title: t.title || 'Untitled' }).then((res) => {
+            if (!res.id) return
+            tree.add({ id: res.id, title: res.title ?? '', parentId: null, createdBy: user.id })
+            go(`/w/${workspace.id}/p/${res.id}`)
+          })
+        },
+      })),
       { key: 'a:inbox', icon: 'inbox' as const, label: 'Open inbox', run: () => go(`/w/${workspace.id}/inbox`) },
       {
         key: 'a:theme',
@@ -179,7 +195,7 @@ export function CommandPalette() {
       // Template shortcuts appear once you type, so the empty palette stays short.
       .filter((a) => (q ? a.label.toLowerCase().includes(q) : !a.key.startsWith('t:')))
     return { pageRows, actions, all: [...pageRows, ...actions] }
-  }, [open, hits, query, tree.nodes, pathOf, go, workspace.id, workspaces, close])
+  }, [open, hits, query, tree, pathOf, go, workspace.id, workspaces, close, own, user.id])
 
   useEffect(() => setIndex(0), [query])
 

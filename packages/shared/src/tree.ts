@@ -25,6 +25,8 @@ export interface TreeNode {
   owner?: string | null
   /** Due date as YYYY-MM-DD. */
   due?: string | null
+  /** Offered as a starting point for new pages. */
+  template?: boolean
 }
 
 export const PAGE_STATUSES = ['todo', 'doing', 'done'] as const

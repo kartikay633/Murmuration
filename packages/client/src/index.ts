@@ -131,6 +131,11 @@ export class SyncClient extends Emitter<{ status: Status; event: ClientEvent }> 
 
   /* ---------------- documents ---------------- */
 
+  /** The handle for a document this client already has open, if any. */
+  handle(name: string): DocHandle | undefined {
+    return this.handles.get(name)
+  }
+
   open(name: string, doc: Y.Doc, given?: awarenessProtocol.Awareness): DocHandle {
     const existing = this.handles.get(name)
     if (existing) return existing

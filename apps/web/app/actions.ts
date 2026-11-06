@@ -188,7 +188,7 @@ export async function createPage(workspaceId: string, title = ''): Promise<{ id?
  * Copy a page: a new page row whose body starts as the source's full state,
  * stored as one event. Authorship of the copied text is kept.
  */
-export async function duplicatePage(pageId: string): Promise<{ id?: string; title?: string; error?: string }> {
+export async function duplicatePage(pageId: string, opts: { title?: string } = {}): Promise<{ id?: string; title?: string; error?: string }> {
   const user = await requireUser()
   const access = await pageRole(user.id, pageId)
   if (!access || !can(access.role, 'view') || !can(await workspaceRole(user.id, access.workspaceId), 'manage-pages')) {
@@ -198,7 +198,7 @@ export async function duplicatePage(pageId: string): Promise<{ id?: string; titl
   const [source] = await db.select({ title: pages.title }).from(pages).where(eq(pages.id, pageId))
   const updates = await loadDocUpdates(pageDoc(pageId))
 
-  const title = `${source?.title || 'Untitled'} (copy)`.slice(0, 300)
+  const title = (opts.title?.trim() || `${source?.title || 'Untitled'} (copy)`).slice(0, 300)
   const [row] = await db
     .insert(pages)
     .values({ workspaceId: access.workspaceId, title, createdBy: user.id })

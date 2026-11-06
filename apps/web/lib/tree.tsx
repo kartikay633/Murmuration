@@ -28,7 +28,7 @@ interface TreeApi {
   add(node: { id: string; title: string; parentId: string | null; createdBy: string }): void
   rename(id: string, title: string): void
   /** Set or clear page properties (null clears). */
-  setProps(id: string, props: { status?: PageStatus | null; owner?: string | null; due?: string | null }): void
+  setProps(id: string, props: { status?: PageStatus | null; owner?: string | null; due?: string | null; template?: boolean | null }): void
   archive(id: string): void
   unarchive(id: string): void
   /** Remove pages from the tree for good (after they were deleted on the server). */
@@ -66,6 +66,7 @@ function readNodes(map: Y.Map<Y.Map<unknown>>, log: Y.Array<MoveOp>): Map<string
       status: isStatus(m.get('status')) ? (m.get('status') as PageStatus) : null,
       owner: typeof m.get('owner') === 'string' ? (m.get('owner') as string) : null,
       due: isDay(m.get('due')) ? (m.get('due') as string) : null,
+      template: m.get('template') === true,
     })
   })
   return out

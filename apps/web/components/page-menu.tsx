@@ -132,6 +132,20 @@ export function PageMenu({
               <Icon name="copy" /> Duplicate
             </button>
           )}
+          {canDuplicate && (
+            <button
+              className="menu-item"
+              role="menuitem"
+              type="button"
+              onClick={run(() => {
+                const on = !tree.nodes.get(pageId)?.template
+                tree.setProps(pageId, { template: on || null })
+                toast(on ? 'Saved as a template. It’s offered on every new page.' : 'No longer a template.')
+              })}
+            >
+              <Icon name="layers" /> {tree.nodes.get(pageId)?.template ? 'Stop using as template' : 'Use as template'}
+            </button>
+          )}
           <button className="menu-item" role="menuitem" type="button" onClick={run(onPresent)} disabled={!editor}>
             <Icon name="present" /> Present
           </button>
